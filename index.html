@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Protest Galaxy: India (2021–2026) | Political Data Dashboard</title>
+    
+    <!-- Libraries: Leaflet Map, Three.js Starfield, PapaParse CSV -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@700&display=swap');
+        
+        :root {
+            --sw-yellow: #ffe81f;
+            --pulp-red: #d90000;
+            --cream-paper: #e8e4d9;
+            --space-black: #030305;
+            --tactical-blue: #00e5ff;
+            --panel-bg: rgba(8, 12, 18, 0.92);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--space-black);
+            color: var(--sw-yellow);
+            font-family: 'Space Mono', monospace;
+            cursor: crosshair;
+        }
+
+        /* Scanlines & Vintage Grain Overlays */
+        .film-grain {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 998;
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.3;
+        }
+
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 999;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.25));
+            background-size: 100% 4px;
+        }
+
+        /* ------------------------------------
+           1. RETRO SCI-FI MOVIE POSTER LANDING 
+        ------------------------------------ */
+        #poster-landing {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #111a2e 0%, #030305 100%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            border: 15px solid var(--pulp-red);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+        }
+
+        #poster-landing::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: url('https://www.transparenttextures.com/patterns/paper.png');
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .poster-tagline {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.1rem;
+            letter-spacing: 4px;
+            color: #fff;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--pulp-red);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+
+        .poster-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 5.5rem;
+            line-height: 0.9;
+            color: var(--sw-yellow);
+            text-shadow: 4px 4px 0 var(--pulp-red), 8px 8px 0 #000;
+            margin: 0 0 10px 0;
+            letter-spacing: 3px;
+        }
+
+        .poster-subtitle {
+            font-family: 'Cinzel', serif;
+            font-size: 1.8rem;
+            color: #fff;
+            margin-bottom: 2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .poster-narrative {
+            max-width: 750px;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 2.5rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border: 1px solid var(--tactical-blue);
+        }
+
+        .enter-btn {
+            background: var(--pulp-red);
+            color: var(--sw-yellow);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            padding: 12px 45px;
+            border: 4px solid var(--sw-yellow);
+            cursor: pointer;
+            box-shadow: 8px 8px 0 #000;
+            transition: all 0.2s ease-in-out;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .enter-btn:hover {
+            background: var(--sw-yellow);
+            color: #000;
+            border-color: var(--pulp-red);
+            transform: scale(1.05) translate(-3px, -3px);
+            box-shadow: 12px 12px 0 var(--pulp-red);
+        }
+
+        /* ------------------------------------
+           2. MAIN DASHBOARD LAYOUT & HEADER
+        ------------------------------------ */
+        header {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 70px;
+            background: rgba(5, 5, 8, 0.95);
+            border-bottom: 3px solid var(--pulp-red);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; z-index: 100;
+            box-shadow: 0 4px 20px rgba(217, 0, 0, 0.3);
+        }
+
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.2rem;
+            color: var(--sw-yellow);
+            text-shadow: 2px 2px 0 var(--pulp-red);
+            letter-spacing: 2px;
+        }
+
+        /* Dynamic Filter Bar */
+        .filter-bar {
+            display: flex; gap: 12px; align-items: center;
+        }
+
+        .filter-group {
+            display: flex; flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 0.65rem; color: var(--tactical-blue); text-transform: uppercase; margin-bottom: 2px;
+        }
+
+        .filter-select {
+            background: #000; color: #fff;
+            border: 1px solid var(--tactical-blue);
+            font-family: 'Space Mono', monospace;
+            padding: 4px 10px; font-size: 0.8rem;
+            outline: none; cursor: pointer;
+        }
+
+        .filter-select:hover { border-color: var(--sw-yellow); }
+
+        /* Main Workspace Grid */
+        #workspace {
+            position: absolute; top: 70px; left: 0; width: 100vw; height: calc(100vh - 130px);
+            display: grid;
+            grid-template-columns: 320px 1fr 340px;
+            gap: 15px; padding: 15px;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to map/3D */
+        }
+
+        .interactive-panel { pointer-events: auto; }
+
+        .panel-box {
+            background: var(--panel-bg);
+            border: 2px solid var(--tactical-blue);
+            box-shadow: inset 0 0 15px rgba(0, 229, 255, 0.15), 5px 5px 0 rgba(217, 0, 0, 0.8);
+            padding: 15px;
+            display: flex; flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem; color: var(--sw-yellow);
+            border-bottom: 2px solid var(--pulp-red);
+            padding-bottom: 5px; margin-bottom: 12px;
+            letter-spacing: 1px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* ------------------------------------
+           3. TACTICAL MAP & GALAXY CORE
+        ------------------------------------ */
+        #map-container {
+            position: absolute; top: 70px; left: 0; width: 100vw; height: calc(100vh - 130px);
+            z-index: 1;
+        }
+
+        #leaflet-map {
+            width: 100%; height: 100%;
+            background: var(--space-black);
+        }
+
+        /* Custom Leaflet Node Pulsing Markers */
+        .tactical-node-icon {
+            background: var(--pulp-red);
+            border: 2px solid var(--sw-yellow);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--pulp-red), 0 0 30px var(--sw-yellow);
+            animation: pulseMarker 1.8s infinite ease-out;
+        }
+
+        @keyframes pulseMarker {
+            0% { transform: scale(0.9); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+            100% { transform: scale(0.9); opacity: 1; }
+        }
+
+        /* ------------------------------------
+           4. GALACTIC CONFLICT INDEX & WIDGETS
+        ------------------------------------ */
+        .metric-card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #333;
+            padding: 10px; margin-bottom: 10px;
+        }
+
+        .metric-val {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.8rem; color: var(--sw-yellow); line-height: 0.9;
+        }
+
+        .metric-lbl {
+            font-size: 0.75rem; color: #aaa; text-transform: uppercase; margin-top: 4px;
+        }
+
+        /* Index Badges */
+        .class-badge {
+            display: inline-block; padding: 3px 8px; font-weight: bold; font-size: 0.75rem; border: 1px solid #000;
+        }
+        .class-1 { background: #4caf50; color: #000; }
+        .class-2 { background: #ff9800; color: #000; }
+        .class-3 { background: #e91e63; color: #fff; }
+        .class-4 { background: #d90000; color: #fff; box-shadow: 0 0 8px var(--pulp-red); }
+
+        /* Protests List in Sidebar */
+        .protest-list-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--tactical-blue);
+            padding: 8px; margin-bottom: 8px;
+            cursor: pointer; transition: all 0.2s;
+        }
+
+        .protest-list-item:hover {
+            background: rgba(0, 229, 255, 0.15);
+            border-left-color: var(--sw-yellow);
+            transform: translateX(3px);
+        }
+
+        .item-name { font-weight: bold; color: #fff; font-size: 0.9rem; }
+        .item-sub { font-size: 0.7rem; color: var(--tactical-blue); display: flex; justify-content: space-between; margin-top: 3px;}
+
+        /* ------------------------------------
+           5. HYPERSPACE TIMELINE (FOOTER)
+        ------------------------------------ */
+        footer {
+            position: absolute; bottom: 0; left: 0; width: 100vw; height: 60px;
+            background: rgba(5, 5, 8, 0.95);
+            border-top: 3px solid var(--tactical-blue);
+            display: flex; align-items: center; padding: 0 20px;
+            z-index: 100;
+        }
+
+        .timeline-label {
+            font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: var(--sw-yellow); margin-right: 20px; white-space: nowrap;
+        }
+
+        .timeline-track {
+            flex-grow: 1; display: flex; justify-content: space-between; align-items: center; position: relative;
+        }
+
+        .timeline-track::before {
+            content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 3px; background: #333; z-index: 1;
+        }
+
+        .timeline-node {
+            position: relative; z-index: 2; background: #000; border: 2px solid var(--tactical-blue);
+            color: #fff; font-size: 0.85rem; font-weight: bold; padding: 4px 12px; cursor: pointer; transition: all 0.2s;
+        }
+
+        .timeline-node:hover, .timeline-node.active {
+            background: var(--pulp-red); border-color: var(--sw-yellow); color: var(--sw-yellow); transform: scale(1.15); box-shadow: 0 0 10px var(--pulp-red);
+        }
+
+        /* ------------------------------------
+           6. PULP FICTION CHARACTER CARD DOSSIER
+        ------------------------------------ */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.88);
+            display: none; justify-content: center; align-items: center;
+            z-index: 3000; backdrop-filter: blur(8px);
+        }
+
+        .dossier-card {
+            background: var(--cream-paper);
+            color: #111;
+            width: 90%; max-width: 850px;
+            max-height: 90vh; overflow-y: auto;
+            padding: 2.5rem;
+            border: 12px solid var(--pulp-red);
+            box-shadow: 20px 20px 0 var(--sw-yellow), 25px 25px 30px #000;
+            position: relative;
+            transform: rotate(-1deg);
+            background-image: url('https://www.transparenttextures.com/patterns/paper.png');
+        }
+
+        .dossier-close {
+            position: absolute; top: -25px; right: -25px;
+            background: var(--pulp-red); color: var(--sw-yellow);
+            border: 4px solid #000;
+            font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem;
+            width: 55px; height: 55px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            transition: 0.2s;
+        }
+
+        .dossier-close:hover { background: #000; transform: scale(1.1) rotate(90deg); }
+
+        .dossier-badge {
+            background: var(--sw-yellow); color: #000;
+            padding: 4px 12px; font-weight: bold; border: 2px solid #000;
+            display: inline-block; transform: rotate(-2deg); font-size: 0.9rem; margin-bottom: 10px;
+        }
+
+        .dossier-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4rem; line-height: 0.85; text-transform: uppercase;
+            margin: 0 0 15px 0; border-bottom: 6px solid #000; padding-bottom: 10px;
+        }
+
+        .dossier-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            background: rgba(0,0,0,0.05); padding: 15px; border: 2px dashed #000; margin-bottom: 20px;
+        }
+
+        .dossier-field { font-size: 0.95rem; }
+        .dossier-field strong { text-transform: uppercase; color: var(--pulp-red); display: block; font-size: 0.75rem; }
+
+        .mission-brief {
+            background: #fff; border: 3px solid #000; padding: 15px; font-size: 1rem; line-height: 1.6;
+            box-shadow: 6px 6px 0 #000;
+        }
+
+        .mission-brief h4 { margin: 0 0 8px 0; font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--pulp-red); }
+    </style>
+</head>
+<body>
+
+<div class="film-grain"></div>
+<div class="scanlines"></div>
+
+<!-- 1. RETRO MOVIE POSTER LANDING SCREEN -->
+<div id="poster-landing">
+    <div class="poster-tagline">EPISODE V // CONTENTION IN THE INDIAN SECTOR</div>
+    <h1 class="poster-title">THE PROTEST GALAXY</h1>
+    <div class="poster-subtitle">INDIA, 2021–2026: A CARTOGRAPHY OF CONTENTION</div>
+    <div class="poster-narrative">
+        Across six years, thousands of grievances travelled through India's political system. 
+        Some disappeared into the void. Others became movements that altered policy trajectories forever. 
+        Explore the spatial dynamics, conflict classifications, and state responses across the democratic galaxy.
+    </div>
+    <button class="enter-btn" onclick="enterGalaxy()">ENTER THE GALAXY ➔</button>
+</div>
+
+<!-- 2. HEADER & FILTERS -->
+<header>
+    <div class="logo">PROTEST GALAXY // DATA TERMINAL</div>
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label>Time Cycle</label>
+            <select class="filter-select" id="filter-year" onchange="applyFilters()">
+                <option value="ALL">2021 - 2026 (All)</option>
+                <option value="2021">2021 Cycle</option>
+                <option value="2022">2022 Cycle</option>
+                <option value="2023">2023 Cycle</option>
+                <option value="2024">2024 Cycle</option>
+                <option value="2025">2025 Cycle</option>
+                <option value="2026">2026 Cycle</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Issue Domain</label>
+            <select class="filter-select" id="filter-issue" onchange="applyFilters()">
+                <option value="ALL">All Domains</option>
+                <option value="Agriculture">Agriculture</option>
+                <option value="Labour">Labour & Transport</option>
+                <option value="Education">Education & Recruitment</option>
+                <option value="Gender">Gender & Safety</option>
+                <option value="Environment">Environment & Land</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Geographic Scale</label>
+            <select class="filter-select" id="filter-scale" onchange="applyFilters()">
+                <option value="ALL">All Scales</option>
+                <option value="National">National Movement</option>
+                <option value="State">State / Regional</option>
+                <option value="Local">Local Disturbance</option>
+            </select>
+        </div>
+    </div>
+</header>
+
+<!-- 3. TACTICAL SATELLITE MAP -->
+<div id="map-container">
+    <div id="leaflet-map"></div>
+</div>
+
+<!-- 4. FLOATING DASHBOARD PANELS -->
+<div id="workspace">
+    <!-- LEFT PANEL: GALACTIC INTELLIGENCE -->
+    <div class="panel-box interactive-panel">
+        <div class="panel-title">Galactic Intelligence</div>
+        
+        <div class="metric-card">
+            <div class="metric-val" id="intel-count">0</div>
+            <div class="metric-lbl">Total Logged Movements</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-val" id="intel-concession" style="color: var(--tactical-blue);">0%</div>
+            <div class="metric-lbl">Policy Concession Rate</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-val" id="intel-median" style="color: var(--pulp-red); font-size: 2.2rem;">0 DAYS</div>
+            <div class="metric-lbl">Median Protest Duration</div>
+        </div>
+
+        <div style="font-size: 0.75rem; color: #888; margin-top: 10px; border-top: 1px dashed #444; padding-top: 8px;">
+            <strong>PRIMARY HUB:</strong> <span id="intel-hub" style="color:#fff;">Delhi NCR</span><br>
+            <strong>DATA STATUS:</strong> SYNCED WITH GOOGLE WORKSPACE
+        </div>
+    </div>
+
+    <!-- CENTER SPACER (Leaves Satellite Map Visible) -->
+    <div></div>
+
+    <!-- RIGHT PANEL: CONFLICT INDEX & RECENT EVENTS -->
+    <div class="panel-box interactive-panel">
+        <div class="panel-title">Conflict Systems</div>
+        <div style="font-size: 0.7rem; color: #aaa; margin-bottom: 10px;">Click system to inspect sci-fi character dossier:</div>
+        <div id="protest-list-container">
+            <!-- Dynamic items injected here -->
+        </div>
+    </div>
+</div>
+
+<!-- 5. HYPERSPACE TIMELINE -->
+<footer>
+    <div class="timeline-label">HYPERSPACE NAVIGATOR:</div>
+    <div class="timeline-track">
+        <div class="timeline-node active" onclick="filterYearNode('ALL', this)">ALL</div>
+        <div class="timeline-node" onclick="filterYearNode('2021', this)">2021</div>
+        <div class="timeline-node" onclick="filterYearNode('2022', this)">2022</div>
+        <div class="timeline-node" onclick="filterYearNode('2023', this)">2023</div>
+        <div class="timeline-node" onclick="filterYearNode('2024', this)">2024</div>
+        <div class="timeline-node" onclick="filterYearNode('2025', this)">2025</div>
+        <div class="timeline-node" onclick="filterYearNode('2026', this)">2026</div>
+    </div>
+</footer>
+
+<!-- 6. PULP FICTION DOSSIER MODAL -->
+<div class="modal-overlay" id="dossier-modal">
+    <div class="dossier-card">
+        <div class="dossier-close" onclick="closeDossier()">X</div>
+        <div class="dossier-badge" id="d-class-badge">CLASS III — NATIONAL MOVEMENT</div>
+        <h2 class="dossier-title" id="d-title">THE FARMERS' PROTEST</h2>
+        
+        <div class="dossier-grid">
+            <div class="dossier-field"><strong>LOCATION SECTOR</strong><span id="d-location">Delhi NCR Borders</span></div>
+            <div class="dossier-field"><strong>TIME PERIOD</strong><span id="d-period">Nov 2020 – Dec 2021</span></div>
+            <div class="dossier-field"><strong>ISSUE DOMAIN</strong><span id="d-issue">Agriculture / Farm Acts</span></div>
+            <div class="dossier-field"><strong>ESTIMATED SCALE</strong><span id="d-scale">National (Very Large)</span></div>
+            <div class="dossier-field"><strong>PRIMARY ACTORS</strong><span id="d-actors">Samyukt Kisan Morcha / Farm Unions</span></div>
+            <div class="dossier-field"><strong>STATE RESPONSE</strong><span id="d-response">Negotiation ➔ Repeal of Laws</span></div>
+            <div class="dossier-field"><strong>POLICY OUTCOME</strong><span id="d-outcome">Policy Repealed / Full Concession</span></div>
+            <div class="dossier-field"><strong>CONFLICT INTENSITY SCORE</strong><span id="d-score">58.4 (Class IV Challenge)</span></div>
+        </div>
+
+        <div class="mission-brief">
+            <h4>// MISSION BRIEF & TACTICAL ANALYSIS</h4>
+            <div id="d-brief">
+                Body paragraph detailing the movement trajectories, road blockades, negotiations, and outcome.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // DATA CORE & DATABASE SCHEMATICS
+    // ==========================================
+    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkGQmLK7N9IEF7jm0F-s1bMpTL3Cx1d6WQlf0EvTH6xEZKZVsqzmT0ie6ilifFt8aFj7ju05CLaThx/pub?output=csv";
+
+    // Rich initial Dataset mapped strictly to research parameters
+    let rawProtestData = [
+        {
+            id: "farmers1",
+            name: "Shambhu-Singhu Blockade",
+            lat: 28.7041, lng: 77.1025,
+            location: "Delhi NCR Borders",
+            year: "2021",
+            issue: "Agriculture",
+            title: "The Great Agrarian Rebellion",
+            scale: "National",
+            duration: 380, // days
+            actors: "Samyukt Kisan Morcha & Farmer Unions",
+            response: "Blockades ➔ High-level Negotiations ➔ Repeal",
+            outcome: "Policy Changed",
+            tagline: "They tried to bury us. They didn’t know we were seeds.",
+            brief: "Legions of farmers from Punjab and Haryana set up long-term semi-permanent encampments at Singhu and Tikri borders. Utilizing tractors as defensive perimeter lines, the movement forced the central government to repeal the three farm laws after 13 months of continuous mobilization."
+        },
+        {
+            id: "jantar23",
+            name: "Jantar Mantar Arena",
+            lat: 28.6271, lng: 77.2166,
+            location: "Delhi Core Sector",
+            year: "2023",
+            issue: "Gender",
+            title: "The Champion Wrestlers' Stand",
+            scale: "National",
+            duration: 40,
+            actors: "Olympic Wrestlers & Citizen Collectives",
+            response: "Police Clearing ➔ Delayed Legal Action",
+            outcome: "Partial Concession",
+            tagline: "You read the Constitution, don't you? Allow me to retort!",
+            brief: "India's top Olympic wrestlers launched a sit-in protest at Jantar Mantar demanding the arrest and removal of the Wrestling Federation of India chief over allegations of sexual harassment, provoking widespread national civil society debates."
+        },
+        {
+            id: "rgkar24",
+            name: "Kolkata Medical Sector",
+            lat: 22.5726, lng: 88.3639,
+            location: "Kolkata Prime",
+            year: "2024",
+            issue: "Gender",
+            title: "The Healers' Strike",
+            scale: "National",
+            duration: 45,
+            actors: "Junior Doctors & Citizen Collectives",
+            response: "Supreme Court Intervention ➔ Institutional Promises",
+            outcome: "Ongoing",
+            tagline: "The path of the righteous healer is beset on all sides...",
+            brief: "Following a tragic sexual violence incident at RG Kar Medical College, doctors across India downed tools. Night marches titled 'Reclaim the Night' saw tens of thousands of citizens marching with candles and neon signs across West Bengal."
+        },
+        {
+            id: "leh24",
+            name: "Ice-World Leh",
+            lat: 34.1526, lng: 77.5771,
+            location: "Ladakh High Frontier",
+            year: "2024",
+            issue: "Environment",
+            title: "The Sub-Zero Fast",
+            scale: "State",
+            duration: 21,
+            actors: "Sonam Wangchuk & Apex Body Leh",
+            response: "Ministry Talks ➔ Security Restrictions",
+            outcome: "Negotiations",
+            tagline: "Are you cold? Good. Now watch me fast till the ice melts.",
+            brief: "Climate activist Sonam Wangchuk led a 21-day sub-zero climate fast demanding Sixth Schedule status for Ladakh to protect its fragile Himalayan ecosystem and indigenous land rights from industrial exploitation."
+        },
+        {
+            id: "agnipath22",
+            name: "Agnipath Railway Rim",
+            lat: 25.5941, lng: 85.1376,
+            location: "Bihar & UP Corridors",
+            year: "2022",
+            issue: "Education",
+            title: "The Recruit's Mutiny",
+            scale: "National",
+            duration: 10,
+            actors: "Military Aspirants & Youth Formations",
+            response: "Police Dispersal ➔ Scheme Amendments",
+            outcome: "No Major Change",
+            tagline: "Four years? We don't do four years. We do a lifetime, man!",
+            brief: "Widespread protests erupted across Bihar, Uttar Pradesh, and Telangana following the announcement of the short-term 'Agnipath' military recruitment scheme. Protesters targeted transport infrastructure, demanding permanent commissions."
+        },
+        {
+            id: "truckers24",
+            name: "Highway Freight Lanes",
+            lat: 19.0760, lng: 72.8777,
+            location: "Pan-India Freight Corridors",
+            year: "2024",
+            issue: "Labour",
+            title: "The Kessel Freight Blockade",
+            scale: "National",
+            duration: 3,
+            actors: "All India Motor Transport Congress & Drivers",
+            response: "Government Reassurance ➔ Law Put on Hold",
+            outcome: "Policy Changed",
+            tagline: "Nobody drives this rig but me, and I ain't driving.",
+            brief: "Truck drivers launched a strike protesting strict hit-and-run penalty provisions in the Bharatiya Nyaya Sanhita. The blockade led to fuel station panic buying across major metro cities until the government agreed to delay implementation."
+        }
+    ];
+
+    let currentFilteredData = [...rawProtestData];
+    let map;
+    let markersLayer;
+
+    // ==========================================
+    // INITIALIZATION & MAP ENGINE
+    // ==========================================
+    function enterGalaxy() {
+        document.getElementById('poster-landing').style.display = 'none';
+        initMap();
+        loadSheetData();
+    }
+
+    function initMap() {
+        // Initialize Leaflet Map Centered on India with Dark Tactical Satellite Tiles
+        map = L.map('leaflet-map', {
+            center: [22.5937, 78.9629],
+            zoom: 5,
+            zoomControl: false
+        });
+
+        // Esri World Imagery (Satellite)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tactical Sat-Feed | Esri',
+            maxZoom: 10,
+            minZoom: 4
+        }).addTo(map);
+
+        // Dark Canvas Overlay to give a deep space / Star Wars radar hue
+        const darkOverlay = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{y}/{x}{r}.png', {
+            subdomains: 'abcd',
+            maxZoom: 10
+        }).addTo(map);
+
+        markersLayer = L.layerGroup().addTo(map);
+        renderDataOnDashboard(currentFilteredData);
+    }
+
+    function loadSheetData() {
+        Papa.parse(GOOGLE_SHEET_CSV_URL + "&_cb=" + new Date().getTime(), {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                if (results.data && results.data.length > 0 && results.data[0].id) {
+                    console.log("Successfully connected to Google Workspace Array!", results.data);
+                    // Merge or overwrite with sheet data if fields match
+                    rawProtestData = results.data.map(item => ({
+                        id: item.id || 'p_' + Math.random(),
+                        name: item.name || 'Unnamed Movement',
+                        lat: parseFloat(item.lat) || 28.6,
+                        lng: parseFloat(item.lng) || 77.2,
+                        location: item.location || 'Indian Sector',
+                        year: item.year || '2024',
+                        issue: item.issue || 'Policy',
+                        title: item.title || item.name,
+                        scale: item.scale || 'National',
+                        duration: parseInt(item.duration) || 15,
+                        actors: item.actors || 'Civil Collectives',
+                        response: item.response || 'State Negotiation',
+                        outcome: item.outcome || 'Negotiations',
+                        tagline: item.tagline || 'A voice in the dark.',
+                        brief: item.body || item.brief || 'No log details available.'
+                    }));
+                    applyFilters();
+                }
+            },
+            error: function(err) {
+                console.warn("Using offline Holocron dataset.", err);
+            }
+        });
+    }
+
+    // ==========================================
+    // CONFLICT INDEX CALCULATOR METHODOLOGY
+    // Intensity = (Scale Wt) * (Duration Days * 0.1) * Impact Wt
+    // ==========================================
+    function calculateConflictIndex(item) {
+        let scaleWeight = item.scale === "National" ? 4.0 : (item.scale === "State" ? 2.5 : 1.2);
+        let durationWeight = Math.min((item.duration || 10) * 0.15, 8.0);
+        let outcomeWeight = item.outcome === "Policy Changed" ? 3.0 : 1.5;
+
+        let indexScore = (scaleWeight * 3) + (durationWeight * 4) + (outcomeWeight * 2);
+        
+        let classification = "Class I — Local Disturbance";
+        let cssClass = "class-1";
+
+        if (indexScore >= 45) {
+            classification = "Class IV — System Challenge";
+            cssClass = "class-4";
+        } else if (indexScore >= 30) {
+            classification = "Class III — National Movement";
+            cssClass = "class-3";
+        } else if (indexScore >= 18) {
+            classification = "Class II — Regional Mobilisation";
+            cssClass = "class-2";
+        }
+
+        return { score: indexScore.toFixed(1), classification, cssClass };
+    }
+
+    // ==========================================
+    // RENDER DASHBOARD COMPONENTS
+    // ==========================================
+    function renderDataOnDashboard(data) {
+        // Clear old markers
+        markersLayer.clearLayers();
+
+        const listContainer = document.getElementById('protest-list-container');
+        listContainer.innerHTML = '';
+
+        let totalDuration = 0;
+        let policyConcessions = 0;
+
+        data.forEach(item => {
+            // 1. Add Tactical Map Nodes
+            const customIcon = L.divIcon({
+                className: 'tactical-node-icon',
+                iconSize: [16, 16]
+            });
+
+            const marker = L.marker([item.lat, item.lng], { icon: customIcon }).addTo(markersLayer);
+            marker.bindTooltip(`<b>${item.name.toUpperCase()}</b><br>${item.issue}`, { direction: 'top' });
+            marker.on('click', () => openDossier(item));
+
+            // 2. Sidebar Conflict List Items
+            const indexData = calculateConflictIndex(item);
+            totalDuration += (item.duration || 10);
+            if(item.outcome === "Policy Changed") policyConcessions++;
+
+            const listItem = document.createElement('div');
+            listItem.className = 'protest-list-item';
+            listItem.onclick = () => {
+                map.flyTo([item.lat, item.lng], 7, { duration: 1.5 });
+                openDossier(item);
+            };
+
+            listItem.innerHTML = `
+                <div class="item-name">${item.title}</div>
+                <div class="item-sub">
+                    <span>${item.location} (${item.year})</span>
+                    <span class="class-badge ${indexData.cssClass}">${indexData.score}</span>
+                </div>
+            `;
+            listContainer.appendChild(listItem);
+        });
+
+        // 3. Update Intelligence Metrics
+        const total = data.length;
+        document.getElementById('intel-count').innerText = total;
+        document.getElementById('intel-concession').innerText = total > 0 ? Math.round((policyConcessions / total) * 100) + "%" : "0%";
+        document.getElementById('intel-median').innerText = total > 0 ? Math.round(totalDuration / total) + " DAYS" : "0 DAYS";
+    }
+
+    // ==========================================
+    // FILTER ENGINE
+    // ==========================================
+    function applyFilters() {
+        const yearVal = document.getElementById('filter-year').value;
+        const issueVal = document.getElementById('filter-issue').value;
+        const scaleVal = document.getElementById('filter-scale').value;
+
+        currentFilteredData = rawProtestData.filter(item => {
+            const matchYear = yearVal === "ALL" || item.year.includes(yearVal);
+            const matchIssue = issueVal === "ALL" || item.issue === issueVal;
+            const matchScale = scaleVal === "ALL" || item.scale === scaleVal;
+            return matchYear && matchIssue && matchScale;
+        });
+
+        renderDataOnDashboard(currentFilteredData);
+    }
+
+    function filterYearNode(year, element) {
+        document.querySelectorAll('.timeline-node').forEach(n => n.classList.remove('active'));
+        element.classList.add('active');
+        document.getElementById('filter-year').value = year;
+        applyFilters();
+    }
+
+    // ==========================================
+    // PULP FICTION DOSSIER MODAL LOGIC
+    // ==========================================
+    function openDossier(item) {
+        const indexData = calculateConflictIndex(item);
+        
+        document.getElementById('d-title').innerText = item.title;
+        document.getElementById('d-class-badge').innerText = `${indexData.classification} (SCORE: ${indexData.score})`;
+        document.getElementById('d-class-badge').className = `dossier-badge ${indexData.cssClass}`;
+        
+        document.getElementById('d-location').innerText = item.location;
+        document.getElementById('d-period').innerText = item.year + ` (~${item.duration || 10} Days)`;
+        document.getElementById('d-issue').innerText = item.issue;
+        document.getElementById('d-scale').innerText = item.scale;
+        document.getElementById('d-actors').innerText = item.actors;
+        document.getElementById('d-response').innerText = item.response;
+        document.getElementById('d-outcome').innerText = item.outcome;
+        document.getElementById('d-score').innerText = indexData.score + " / 100";
+        
+        document.getElementById('d-brief').innerHTML = `
+            <p><strong>TAGLINE:</strong> <em>"${item.tagline}"</em></p>
+            <p>${item.brief}</p>
+        `;
+
+        document.getElementById('dossier-modal').style.display = 'flex';
+    }
+
+    function closeDossier() {
+        document.getElementById('dossier-modal').style.display = 'none';
+    }
+</script>
+</body>
+</html>
