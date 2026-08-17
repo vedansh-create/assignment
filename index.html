@@ -1,841 +1,1213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Protest Galaxy: India (2021–2026) | Political Data Dashboard</title>
-    
-    <!-- Libraries: Leaflet Map, Three.js Starfield, PapaParse CSV -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@700&display=swap');
-        
-        :root {
-            --sw-yellow: #ffe81f;
-            --pulp-red: #d90000;
-            --cream-paper: #e8e4d9;
-            --space-black: #030305;
-            --tactical-blue: #00e5ff;
-            --panel-bg: rgba(8, 12, 18, 0.92);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Protest Galaxy — India 2021–2026 | A Cartography of Contention</title>
 
-        * { box-sizing: border-box; }
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Zilla+Slab:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: var(--space-black);
-            color: var(--sw-yellow);
-            font-family: 'Space Mono', monospace;
-            cursor: crosshair;
-        }
+<style>
+:root{
+  --void:#06080d;
+  --void-2:#0c1119;
+  --panel:rgba(10,15,23,.94);
+  --hairline:#1d2938;
+  --holo:#4dd8ff;
+  --holo-dim:#2a7f9c;
+  --gold:#ffd94a;
+  --pulp:#c8102e;
+  --newsprint:#efe9d8;
+  --ink:#14110c;
+  --muted:#7f8fa3;
 
-        /* Scanlines & Vintage Grain Overlays */
-        .film-grain {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            pointer-events: none; z-index: 998;
-            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-            opacity: 0.3;
-        }
+  /* State Response Severity ramp, tier 0 to 4 */
+  --srs0:#3fa9c9;
+  --srs1:#6fc9b0;
+  --srs2:#ffd94a;
+  --srs3:#f5842a;
+  --srs4:#e0242e;
 
-        .scanlines {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            pointer-events: none; z-index: 999;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.25));
-            background-size: 100% 4px;
-        }
+  --hdr:64px;
+  --bar:34px;
+}
 
-        /* ------------------------------------
-           1. RETRO SCI-FI MOVIE POSTER LANDING 
-        ------------------------------------ */
-        #poster-landing {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: radial-gradient(circle at center, #111a2e 0%, #030305 100%);
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 2rem;
-            border: 15px solid var(--pulp-red);
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
-        }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--void);color:#dbe6f2;
+  font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:13px;overflow:hidden;
+}
+button,select,input{font-family:inherit}
+::selection{background:var(--gold);color:#000}
 
-        #poster-landing::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: url('https://www.transparenttextures.com/patterns/paper.png');
-            opacity: 0.15;
-            pointer-events: none;
-        }
+/* focus visibility is non-negotiable */
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
-        .poster-tagline {
-            font-family: 'Space Mono', monospace;
-            font-size: 1.1rem;
-            letter-spacing: 4px;
-            color: #fff;
-            text-transform: uppercase;
-            border-bottom: 2px solid var(--pulp-red);
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-        }
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
 
-        .poster-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 5.5rem;
-            line-height: 0.9;
-            color: var(--sw-yellow);
-            text-shadow: 4px 4px 0 var(--pulp-red), 8px 8px 0 #000;
-            margin: 0 0 10px 0;
-            letter-spacing: 3px;
-        }
+/* ---------- ambient layers ---------- */
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none}
+.scanlines{
+  position:fixed;inset:0;pointer-events:none;z-index:900;opacity:.35;
+  background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.45) 3px 4px);
+}
+.vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:899;
+  background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.75) 100%);
+}
 
-        .poster-subtitle {
-            font-family: 'Cinzel', serif;
-            font-size: 1.8rem;
-            color: #fff;
-            margin-bottom: 2rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
+/* ---------- landing poster ---------- */
+#poster{
+  position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:28px;
+  background:radial-gradient(ellipse at 50% 35%,#16233d 0%,#070a12 62%,#04060a 100%);
+  overflow:auto;
+}
+.poster-rule{width:min(760px,90vw);height:2px;background:var(--pulp);margin:0 0 14px}
+.poster-eyebrow{
+  font-size:11px;letter-spacing:.42em;color:var(--holo);text-transform:uppercase;margin-bottom:16px;
+}
+.poster-title{
+  font-family:'Bebas Neue',Impact,sans-serif;
+  font-size:clamp(2.9rem,9.5vw,7rem);line-height:.86;margin:0;letter-spacing:.03em;
+  color:var(--gold);text-shadow:3px 3px 0 var(--pulp),6px 6px 0 #000;
+}
+.poster-sub{
+  font-family:'Zilla Slab',Georgia,serif;font-weight:600;
+  font-size:clamp(.95rem,2.4vw,1.35rem);letter-spacing:.28em;
+  text-transform:uppercase;color:#fff;margin:14px 0 22px;
+}
+.poster-body{
+  max-width:640px;font-size:13px;line-height:1.85;color:#a9bdd2;
+  border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);
+  padding:18px 0;margin-bottom:14px;
+}
+.poster-body b{color:var(--gold);font-weight:500}
+.poster-warn{
+  max-width:640px;font-size:11px;line-height:1.7;color:var(--muted);margin-bottom:26px;
+  border-left:2px solid var(--pulp);padding-left:12px;text-align:left;
+}
+.enter{
+  font-family:'Bebas Neue',Impact,sans-serif;font-size:1.9rem;letter-spacing:.16em;
+  background:var(--pulp);color:var(--gold);border:3px solid var(--gold);
+  padding:9px 40px;cursor:pointer;box-shadow:6px 6px 0 #000;transition:.18s;
+}
+.enter:hover{background:var(--gold);color:#000;border-color:var(--pulp);box-shadow:10px 10px 0 var(--pulp);transform:translate(-2px,-2px)}
 
-        .poster-narrative {
-            max-width: 750px;
-            font-size: 1rem;
-            line-height: 1.6;
-            color: #ccc;
-            margin-bottom: 2.5rem;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border: 1px solid var(--tactical-blue);
-        }
+/* ---------- header ---------- */
+header{
+  position:fixed;top:0;left:0;right:0;height:var(--hdr);z-index:500;
+  background:rgba(6,9,14,.97);border-bottom:1px solid var(--pulp);
+  display:flex;align-items:center;gap:18px;padding:0 14px;
+}
+.brand{font-family:'Bebas Neue',Impact,sans-serif;font-size:1.5rem;letter-spacing:.08em;color:var(--gold);white-space:nowrap}
+.brand small{display:block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--holo-dim);margin-top:-4px}
 
-        .enter-btn {
-            background: var(--pulp-red);
-            color: var(--sw-yellow);
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 2.5rem;
-            padding: 12px 45px;
-            border: 4px solid var(--sw-yellow);
-            cursor: pointer;
-            box-shadow: 8px 8px 0 #000;
-            transition: all 0.2s ease-in-out;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
+.tabs{display:flex;gap:0;border:1px solid var(--hairline)}
+.tab{
+  background:transparent;border:0;border-right:1px solid var(--hairline);
+  color:var(--muted);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  padding:7px 13px;cursor:pointer;transition:.15s;
+}
+.tab:last-child{border-right:0}
+.tab:hover{color:#fff;background:rgba(77,216,255,.08)}
+.tab[aria-selected="true"]{background:var(--gold);color:#000;font-weight:600}
 
-        .enter-btn:hover {
-            background: var(--sw-yellow);
-            color: #000;
-            border-color: var(--pulp-red);
-            transform: scale(1.05) translate(-3px, -3px);
-            box-shadow: 12px 12px 0 var(--pulp-red);
-        }
+.filters{display:flex;gap:10px;margin-left:auto;align-items:flex-end;flex-wrap:wrap}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:9px;letter-spacing:.16em;color:var(--holo-dim);text-transform:uppercase}
+.fg select{
+  background:#05080d;color:#e7f0fa;border:1px solid var(--hairline);
+  padding:4px 8px;font-size:11px;cursor:pointer;min-width:118px;
+}
+.fg select:hover{border-color:var(--holo)}
+.ghost{
+  background:transparent;border:1px solid var(--hairline);color:var(--muted);
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;cursor:pointer;
+}
+.ghost:hover{border-color:var(--gold);color:var(--gold)}
 
-        /* ------------------------------------
-           2. MAIN DASHBOARD LAYOUT & HEADER
-        ------------------------------------ */
-        header {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 70px;
-            background: rgba(5, 5, 8, 0.95);
-            border-bottom: 3px solid var(--pulp-red);
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 20px; z-index: 100;
-            box-shadow: 0 4px 20px rgba(217, 0, 0, 0.3);
-        }
+/* ---------- main grid ---------- */
+main{
+  position:fixed;top:var(--hdr);bottom:var(--bar);left:0;right:0;z-index:10;
+  display:grid;grid-template-columns:288px minmax(0,1fr) 316px;gap:10px;padding:10px;
+}
+.panel{
+  background:var(--panel);border:1px solid var(--hairline);
+  display:flex;flex-direction:column;min-height:0;position:relative;
+}
+.panel::before{
+  content:'';position:absolute;top:-1px;left:-1px;width:9px;height:9px;
+  border-top:2px solid var(--holo);border-left:2px solid var(--holo);
+}
+.panel::after{
+  content:'';position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;
+  border-bottom:2px solid var(--holo);border-right:2px solid var(--holo);
+}
+.p-head{
+  font-family:'Bebas Neue',Impact,sans-serif;font-size:1.05rem;letter-spacing:.09em;
+  color:var(--gold);padding:9px 12px;border-bottom:1px solid var(--hairline);
+  display:flex;justify-content:space-between;align-items:baseline;flex:0 0 auto;
+}
+.centre{background:rgba(6,9,14,.6);overflow:hidden}
+.p-head span{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--muted)}
+.p-body{padding:12px;overflow-y:auto;flex:1 1 auto;min-height:0}
+.p-body::-webkit-scrollbar{width:7px}
+.p-body::-webkit-scrollbar-thumb{background:var(--hairline)}
+.p-body::-webkit-scrollbar-thumb:hover{background:var(--holo-dim)}
 
-        .logo {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 2.2rem;
-            color: var(--sw-yellow);
-            text-shadow: 2px 2px 0 var(--pulp-red);
-            letter-spacing: 2px;
-        }
+/* ---------- intelligence readout ---------- */
+.stat{border-left:2px solid var(--holo-dim);padding:0 0 0 10px;margin-bottom:15px}
+.stat .n{font-family:'Bebas Neue',Impact,sans-serif;font-size:2.3rem;line-height:.92;color:var(--gold)}
+.stat .n.cy{color:var(--holo)}
+.stat .n.rd{color:var(--pulp)}
+.stat .l{font-size:9.5px;letter-spacing:.13em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.stat .d{font-size:10px;color:#5d6c7e;margin-top:4px;line-height:1.5}
 
-        /* Dynamic Filter Bar */
-        .filter-bar {
-            display: flex; gap: 12px; align-items: center;
-        }
+.finding{
+  border:1px solid var(--pulp);padding:10px;margin:4px 0 16px;background:rgba(200,16,46,.07);
+  font-size:11px;line-height:1.65;color:#d5c8cb;
+}
+.finding b{color:var(--gold);display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:5px}
 
-        .filter-group {
-            display: flex; flex-direction: column;
-        }
+.corr{border:1px solid var(--hairline);padding:9px 10px;margin-bottom:14px;font-size:10px;line-height:1.55}
+.corr h5{margin:0 0 7px;font-size:9px;letter-spacing:.16em;color:var(--holo);text-transform:uppercase;font-weight:500}
+.corr .cr{display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;color:#9db0c4}
+.corr .cr b{font-family:'Bebas Neue',Impact,sans-serif;font-size:1.05rem;letter-spacing:.04em}
+.corr small{display:block;color:#5d6c7e;font-size:9px;line-height:1.5;margin-top:6px;border-top:1px dashed var(--hairline);padding-top:6px}
+.caveat{
+  font-size:10px;line-height:1.6;color:var(--muted);
+  border-top:1px dashed var(--hairline);padding-top:9px;margin-top:6px;
+}
+.caveat b{color:var(--pulp)}
 
-        .filter-group label {
-            font-size: 0.65rem; color: var(--tactical-blue); text-transform: uppercase; margin-bottom: 2px;
-        }
+/* weight sliders */
+.wt{margin-bottom:9px}
+.wt-row{display:flex;justify-content:space-between;font-size:10px;color:#9db0c4;margin-bottom:3px}
+.wt-row em{font-style:normal;color:var(--gold)}
+input[type=range]{
+  width:100%;height:3px;background:var(--hairline);appearance:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  appearance:none;width:11px;height:11px;background:var(--holo);border:0;cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--holo);border:0;cursor:pointer}
 
-        .filter-select {
-            background: #000; color: #fff;
-            border: 1px solid var(--tactical-blue);
-            font-family: 'Space Mono', monospace;
-            padding: 4px 10px; font-size: 0.8rem;
-            outline: none; cursor: pointer;
-        }
+/* ---------- case list ---------- */
+.case{
+  border-left:3px solid var(--hairline);background:rgba(255,255,255,.02);
+  padding:8px 9px;margin-bottom:7px;cursor:pointer;transition:.14s;width:100%;
+  text-align:left;border-top:0;border-right:0;border-bottom:0;color:inherit;display:block;
+}
+.case:hover,.case:focus-visible{background:rgba(77,216,255,.1);transform:translateX(3px)}
+.case-t{font-size:12px;color:#fff;font-weight:500;line-height:1.35}
+.case-m{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:5px;font-size:9.5px;color:var(--holo-dim)}
+.chip{padding:1px 6px;font-size:9px;font-weight:600;color:#000;white-space:nowrap}
+.empty{color:var(--muted);font-size:11px;line-height:1.7;padding:14px 4px}
+.empty b{color:var(--gold);display:block;margin-bottom:6px;font-size:12px}
 
-        .filter-select:hover { border-color: var(--sw-yellow); }
+/* ---------- views ---------- */
+.view{position:relative;width:100%;height:100%;display:none;min-height:0}
+.view.on{display:block}
 
-        /* Main Workspace Grid */
-        #workspace {
-            position: absolute; top: 70px; left: 0; width: 100vw; height: calc(100vh - 130px);
-            display: grid;
-            grid-template-columns: 320px 1fr 340px;
-            gap: 15px; padding: 15px;
-            z-index: 10;
-            pointer-events: none; /* Let clicks pass through to map/3D */
-        }
+#map{position:absolute;inset:0;background:transparent}
+.leaflet-tile-pane{opacity:.44;filter:sepia(.65) hue-rotate(168deg) saturate(3.1) brightness(.72) contrast(1.15)}
+.leaflet-container{background:transparent!important;font-family:'IBM Plex Mono',monospace}
+.leaflet-control-attribution{background:rgba(0,0,0,.6)!important;color:#5d6c7e!important;font-size:9px!important}
+.leaflet-control-attribution a{color:var(--holo-dim)!important}
+.node{border-radius:50%;border:2px solid rgba(255,255,255,.85);cursor:pointer}
+.node.big{animation:pulse 2.6s infinite ease-in-out}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.62}}
+.leaflet-tooltip{
+  background:#05080d!important;border:1px solid var(--holo)!important;color:#e7f0fa!important;
+  font-size:10.5px!important;box-shadow:none!important;border-radius:0!important;
+}
+.leaflet-tooltip::before{display:none}
 
-        .interactive-panel { pointer-events: auto; }
+.svgwrap{position:absolute;inset:0;overflow:auto;padding:6px}
+svg.plot{display:block;width:100%;height:100%;min-height:340px}
+.ax{stroke:var(--hairline);stroke-width:1}
+.axg{stroke:#131c28;stroke-width:1}
+.axt{fill:var(--muted);font-size:9.5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em}
+.axl{fill:var(--gold);font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase}
+.pt{cursor:pointer;transition:.15s}
+.pt:hover{stroke:#fff;stroke-width:2.5}
+.ptl{fill:#93a7bb;font-size:9px;font-family:'IBM Plex Mono',monospace;pointer-events:none}
+.zone{fill:#fff;opacity:.022}
+.zonet{fill:#4a5a6c;font-size:9px;font-family:'IBM Plex Mono',monospace;letter-spacing:.12em}
 
-        .panel-box {
-            background: var(--panel-bg);
-            border: 2px solid var(--tactical-blue);
-            box-shadow: inset 0 0 15px rgba(0, 229, 255, 0.15), 5px 5px 0 rgba(217, 0, 0, 0.8);
-            padding: 15px;
-            display: flex; flex-direction: column;
-            overflow-y: auto;
-        }
+/* ---------- codebook ---------- */
+.book{padding:22px 26px;overflow-y:auto;height:100%;max-width:900px;line-height:1.75}
+.book h2{font-family:'Bebas Neue',Impact,sans-serif;font-size:1.7rem;color:var(--gold);letter-spacing:.06em;margin:26px 0 8px;border-bottom:1px solid var(--pulp);padding-bottom:5px}
+.book h2:first-child{margin-top:0}
+.book h3{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--holo);margin:16px 0 6px}
+.book p{font-size:12px;color:#b3c4d6;margin:0 0 11px}
+.book code{background:#0a121c;border:1px solid var(--hairline);padding:1px 5px;color:var(--gold);font-size:11px}
+.book table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:11px}
+.book th{background:rgba(200,16,46,.16);color:var(--gold);text-align:left;padding:6px 9px;border:1px solid var(--hairline);font-weight:600;letter-spacing:.06em}
+.book td{padding:6px 9px;border:1px solid var(--hairline);color:#b3c4d6;vertical-align:top}
+.book td:first-child{color:#fff;white-space:nowrap}
 
-        .panel-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.8rem; color: var(--sw-yellow);
-            border-bottom: 2px solid var(--pulp-red);
-            padding-bottom: 5px; margin-bottom: 12px;
-            letter-spacing: 1px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+/* ---------- status bar ---------- */
+footer{
+  position:fixed;bottom:0;left:0;right:0;height:var(--bar);z-index:500;
+  background:rgba(6,9,14,.97);border-top:1px solid var(--holo-dim);
+  display:flex;align-items:center;gap:16px;padding:0 14px;font-size:10px;color:var(--muted);
+  overflow-x:auto;white-space:nowrap;
+}
+footer b{color:var(--holo);letter-spacing:.14em}
+.legend{display:flex;gap:9px;align-items:center;margin-left:auto}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:4px;vertical-align:-1px}
+.legend span{color:#7f8fa3;font-size:9.5px}
 
-        /* ------------------------------------
-           3. TACTICAL MAP & GALAXY CORE
-        ------------------------------------ */
-        #map-container {
-            position: absolute; top: 70px; left: 0; width: 100vw; height: calc(100vh - 130px);
-            z-index: 1;
-        }
+/* ---------- dossier ---------- */
+.overlay{
+  position:fixed;inset:0;z-index:3000;background:rgba(2,4,8,.9);
+  display:none;align-items:center;justify-content:center;padding:24px;overflow:auto;
+}
+.overlay.on{display:flex}
+.dossier{
+  background:var(--newsprint);color:var(--ink);width:min(860px,100%);max-height:88vh;overflow-y:auto;
+  padding:32px 34px;border:10px solid var(--pulp);box-shadow:14px 14px 0 var(--gold);
+  position:relative;font-family:'Zilla Slab',Georgia,serif;
+}
+.d-close{
+  position:absolute;top:-20px;right:-20px;width:46px;height:46px;background:var(--pulp);color:var(--gold);
+  border:3px solid #000;font-family:'Bebas Neue',Impact,sans-serif;font-size:1.9rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.18s;line-height:1;
+}
+.d-close:hover{background:#000;transform:rotate(90deg)}
+.d-strip{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}
+.d-tag{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 9px;border:2px solid #000;letter-spacing:.06em}
+.d-title{
+  font-family:'Bebas Neue',Impact,sans-serif;font-size:clamp(2rem,5.5vw,3.5rem);line-height:.88;
+  margin:0 0 6px;text-transform:uppercase;letter-spacing:.01em;
+}
+.d-alt{font-size:13px;font-style:italic;color:#5c5343;border-bottom:4px solid #000;padding-bottom:12px;margin-bottom:16px}
+.d-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px;
+  border:2px dashed #000;padding:14px;margin-bottom:16px;background:rgba(0,0,0,.035)}
+.d-f strong{display:block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--pulp);text-transform:uppercase;margin-bottom:2px}
+.d-f span{font-size:13.5px;line-height:1.4}
+.brief{background:#fff;border:2px solid #000;box-shadow:5px 5px 0 #000;padding:16px 18px;margin-bottom:15px}
+.brief h4{font-family:'Bebas Neue',Impact,sans-serif;font-size:1.3rem;color:var(--pulp);margin:0 0 8px;letter-spacing:.05em}
+.brief p{font-size:14px;line-height:1.66;margin:0 0 10px}
+.brief p:last-child{margin-bottom:0}
+.scorebox{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:15px}
+.sb{border:2px solid #000;padding:8px 10px;background:#fff}
+.sb b{display:block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#7a6f5c;text-transform:uppercase}
+.sb i{font-style:normal;font-family:'Bebas Neue',Impact,sans-serif;font-size:1.5rem;line-height:1.1}
+.note{font-size:12px;line-height:1.6;background:rgba(200,16,46,.08);border-left:4px solid var(--pulp);padding:9px 12px;margin-bottom:14px}
+.note b{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--pulp);display:block;margin-bottom:3px}
+.srcs{font-size:12px}
+.srcs b{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--pulp);display:block;margin-bottom:5px}
+.srcs a{display:block;color:#1c4f7a;margin-bottom:3px;word-break:break-word}
 
-        #leaflet-map {
-            width: 100%; height: 100%;
-            background: var(--space-black);
-        }
-
-        /* Custom Leaflet Node Pulsing Markers */
-        .tactical-node-icon {
-            background: var(--pulp-red);
-            border: 2px solid var(--sw-yellow);
-            border-radius: 50%;
-            box-shadow: 0 0 15px var(--pulp-red), 0 0 30px var(--sw-yellow);
-            animation: pulseMarker 1.8s infinite ease-out;
-        }
-
-        @keyframes pulseMarker {
-            0% { transform: scale(0.9); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.7; }
-            100% { transform: scale(0.9); opacity: 1; }
-        }
-
-        /* ------------------------------------
-           4. GALACTIC CONFLICT INDEX & WIDGETS
-        ------------------------------------ */
-        .metric-card {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid #333;
-            padding: 10px; margin-bottom: 10px;
-        }
-
-        .metric-val {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 2.8rem; color: var(--sw-yellow); line-height: 0.9;
-        }
-
-        .metric-lbl {
-            font-size: 0.75rem; color: #aaa; text-transform: uppercase; margin-top: 4px;
-        }
-
-        /* Index Badges */
-        .class-badge {
-            display: inline-block; padding: 3px 8px; font-weight: bold; font-size: 0.75rem; border: 1px solid #000;
-        }
-        .class-1 { background: #4caf50; color: #000; }
-        .class-2 { background: #ff9800; color: #000; }
-        .class-3 { background: #e91e63; color: #fff; }
-        .class-4 { background: #d90000; color: #fff; box-shadow: 0 0 8px var(--pulp-red); }
-
-        /* Protests List in Sidebar */
-        .protest-list-item {
-            background: rgba(255, 255, 255, 0.03);
-            border-left: 3px solid var(--tactical-blue);
-            padding: 8px; margin-bottom: 8px;
-            cursor: pointer; transition: all 0.2s;
-        }
-
-        .protest-list-item:hover {
-            background: rgba(0, 229, 255, 0.15);
-            border-left-color: var(--sw-yellow);
-            transform: translateX(3px);
-        }
-
-        .item-name { font-weight: bold; color: #fff; font-size: 0.9rem; }
-        .item-sub { font-size: 0.7rem; color: var(--tactical-blue); display: flex; justify-content: space-between; margin-top: 3px;}
-
-        /* ------------------------------------
-           5. HYPERSPACE TIMELINE (FOOTER)
-        ------------------------------------ */
-        footer {
-            position: absolute; bottom: 0; left: 0; width: 100vw; height: 60px;
-            background: rgba(5, 5, 8, 0.95);
-            border-top: 3px solid var(--tactical-blue);
-            display: flex; align-items: center; padding: 0 20px;
-            z-index: 100;
-        }
-
-        .timeline-label {
-            font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: var(--sw-yellow); margin-right: 20px; white-space: nowrap;
-        }
-
-        .timeline-track {
-            flex-grow: 1; display: flex; justify-content: space-between; align-items: center; position: relative;
-        }
-
-        .timeline-track::before {
-            content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 3px; background: #333; z-index: 1;
-        }
-
-        .timeline-node {
-            position: relative; z-index: 2; background: #000; border: 2px solid var(--tactical-blue);
-            color: #fff; font-size: 0.85rem; font-weight: bold; padding: 4px 12px; cursor: pointer; transition: all 0.2s;
-        }
-
-        .timeline-node:hover, .timeline-node.active {
-            background: var(--pulp-red); border-color: var(--sw-yellow); color: var(--sw-yellow); transform: scale(1.15); box-shadow: 0 0 10px var(--pulp-red);
-        }
-
-        /* ------------------------------------
-           6. PULP FICTION CHARACTER CARD DOSSIER
-        ------------------------------------ */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.88);
-            display: none; justify-content: center; align-items: center;
-            z-index: 3000; backdrop-filter: blur(8px);
-        }
-
-        .dossier-card {
-            background: var(--cream-paper);
-            color: #111;
-            width: 90%; max-width: 850px;
-            max-height: 90vh; overflow-y: auto;
-            padding: 2.5rem;
-            border: 12px solid var(--pulp-red);
-            box-shadow: 20px 20px 0 var(--sw-yellow), 25px 25px 30px #000;
-            position: relative;
-            transform: rotate(-1deg);
-            background-image: url('https://www.transparenttextures.com/patterns/paper.png');
-        }
-
-        .dossier-close {
-            position: absolute; top: -25px; right: -25px;
-            background: var(--pulp-red); color: var(--sw-yellow);
-            border: 4px solid #000;
-            font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem;
-            width: 55px; height: 55px; cursor: pointer;
-            display: flex; justify-content: center; align-items: center;
-            transition: 0.2s;
-        }
-
-        .dossier-close:hover { background: #000; transform: scale(1.1) rotate(90deg); }
-
-        .dossier-badge {
-            background: var(--sw-yellow); color: #000;
-            padding: 4px 12px; font-weight: bold; border: 2px solid #000;
-            display: inline-block; transform: rotate(-2deg); font-size: 0.9rem; margin-bottom: 10px;
-        }
-
-        .dossier-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 4rem; line-height: 0.85; text-transform: uppercase;
-            margin: 0 0 15px 0; border-bottom: 6px solid #000; padding-bottom: 10px;
-        }
-
-        .dossier-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
-            background: rgba(0,0,0,0.05); padding: 15px; border: 2px dashed #000; margin-bottom: 20px;
-        }
-
-        .dossier-field { font-size: 0.95rem; }
-        .dossier-field strong { text-transform: uppercase; color: var(--pulp-red); display: block; font-size: 0.75rem; }
-
-        .mission-brief {
-            background: #fff; border: 3px solid #000; padding: 15px; font-size: 1rem; line-height: 1.6;
-            box-shadow: 6px 6px 0 #000;
-        }
-
-        .mission-brief h4 { margin: 0 0 8px 0; font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--pulp-red); }
-    </style>
+/* ---------- responsive ---------- */
+@media (max-width:1180px){
+  main{grid-template-columns:250px minmax(0,1fr);grid-template-rows:1fr 210px}
+  .panel.right{grid-column:1/-1}
+}
+@media (max-width:820px){
+  :root{--hdr:104px}
+  header{flex-wrap:wrap;gap:8px;padding:8px 10px;align-content:center}
+  .filters{margin-left:0;width:100%}
+  .fg select{min-width:0;flex:1}
+  main{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;overflow-y:auto}
+  .panel.left{max-height:260px}
+  .panel.right{max-height:280px;grid-column:auto}
+  .view{min-height:400px}
+  .dossier{padding:22px 18px;border-width:6px;box-shadow:8px 8px 0 var(--gold)}
+  .d-close{top:-14px;right:-14px;width:38px;height:38px;font-size:1.5rem}
+  .legend{display:none}
+}
+</style>
 </head>
 <body>
 
-<div class="film-grain"></div>
-<div class="scanlines"></div>
+<canvas id="starfield" aria-hidden="true"></canvas>
+<div class="scanlines" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
 
-<!-- 1. RETRO MOVIE POSTER LANDING SCREEN -->
-<div id="poster-landing">
-    <div class="poster-tagline">EPISODE V // CONTENTION IN THE INDIAN SECTOR</div>
-    <h1 class="poster-title">THE PROTEST GALAXY</h1>
-    <div class="poster-subtitle">INDIA, 2021–2026: A CARTOGRAPHY OF CONTENTION</div>
-    <div class="poster-narrative">
-        Across six years, thousands of grievances travelled through India's political system. 
-        Some disappeared into the void. Others became movements that altered policy trajectories forever. 
-        Explore the spatial dynamics, conflict classifications, and state responses across the democratic galaxy.
-    </div>
-    <button class="enter-btn" onclick="enterGalaxy()">ENTER THE GALAXY ➔</button>
+<!-- ============ LANDING ============ -->
+<div id="poster">
+  <div class="poster-eyebrow">A Cartography of Contention</div>
+  <div class="poster-rule"></div>
+  <h1 class="poster-title">The Protest Galaxy</h1>
+  <div class="poster-sub">India &middot; 2021&ndash;2026</div>
+  <p class="poster-body">
+    Thirteen movements. Six years. Every one of them applied pressure to the same political system,
+    and the system answered them very differently. This terminal measures how hard each one pushed,
+    how hard the state pushed back, and <b>which institution, if any, finally moved</b>.
+  </p>
+  <p class="poster-warn">
+    Read this first. These are thirteen purposively selected high-salience cases, not a sample.
+    ACLED logged roughly 20,600 demonstrations in India in 2025 alone. Nothing here estimates a national rate.
+    The intensity index is constructed by this dashboard and its weights are yours to change.
+  </p>
+  <button class="enter" id="enter-btn">Enter the galaxy &rarr;</button>
 </div>
 
-<!-- 2. HEADER & FILTERS -->
+<!-- ============ HEADER ============ -->
 <header>
-    <div class="logo">PROTEST GALAXY // DATA TERMINAL</div>
-    <div class="filter-bar">
-        <div class="filter-group">
-            <label>Time Cycle</label>
-            <select class="filter-select" id="filter-year" onchange="applyFilters()">
-                <option value="ALL">2021 - 2026 (All)</option>
-                <option value="2021">2021 Cycle</option>
-                <option value="2022">2022 Cycle</option>
-                <option value="2023">2023 Cycle</option>
-                <option value="2024">2024 Cycle</option>
-                <option value="2025">2025 Cycle</option>
-                <option value="2026">2026 Cycle</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Issue Domain</label>
-            <select class="filter-select" id="filter-issue" onchange="applyFilters()">
-                <option value="ALL">All Domains</option>
-                <option value="Agriculture">Agriculture</option>
-                <option value="Labour">Labour & Transport</option>
-                <option value="Education">Education & Recruitment</option>
-                <option value="Gender">Gender & Safety</option>
-                <option value="Environment">Environment & Land</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Geographic Scale</label>
-            <select class="filter-select" id="filter-scale" onchange="applyFilters()">
-                <option value="ALL">All Scales</option>
-                <option value="National">National Movement</option>
-                <option value="State">State / Regional</option>
-                <option value="Local">Local Disturbance</option>
-            </select>
-        </div>
-    </div>
+  <div class="brand">Protest Galaxy<small>DATA TERMINAL v2</small></div>
+
+  <div class="tabs" role="tablist" aria-label="Views">
+    <button class="tab" role="tab" aria-selected="true" data-view="map">Star map</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="grid">Pressure grid</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="time">Trajectories</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="book">Codebook</button>
+  </div>
+
+  <div class="filters">
+    <div class="fg"><label for="f-year">Period</label>
+      <select id="f-year">
+        <option value="ALL">2021&ndash;2026</option>
+        <option>2021</option><option>2022</option><option>2023</option>
+        <option>2024</option><option>2025</option><option>2026</option>
+      </select></div>
+    <div class="fg"><label for="f-issue">Issue</label><select id="f-issue"></select></div>
+    <div class="fg"><label for="f-scale">Scale</label><select id="f-scale"></select></div>
+    <div class="fg"><label for="f-out">Outcome</label><select id="f-out"></select></div>
+    <div class="fg"><label for="f-srs">Response</label><select id="f-srs"></select></div>
+    <button class="ghost" id="btn-reset">Reset</button>
+    <button class="ghost" id="btn-csv">Export CSV</button>
+  </div>
 </header>
 
-<!-- 3. TACTICAL SATELLITE MAP -->
-<div id="map-container">
-    <div id="leaflet-map"></div>
-</div>
+<!-- ============ MAIN ============ -->
+<main>
+  <!-- LEFT -->
+  <section class="panel left" aria-label="Intelligence readout">
+    <div class="p-head">Intelligence <span id="scope">13 CASES</span></div>
+    <div class="p-body">
+      <div class="stat"><div class="n" id="s-n">0</div><div class="l">Cases in view</div></div>
+      <div class="stat"><div class="n cy" id="s-con">0%</div><div class="l">Full policy concession</div>
+        <div class="d">Share ending in <em>Policy changed</em>. Not a national rate.</div></div>
+      <div class="stat"><div class="n rd" id="s-med">0</div><div class="l">Median duration, days</div>
+        <div class="d">Median, not mean. Long tails distort the average badly here.</div></div>
+      <div class="stat"><div class="n" id="s-srs" style="color:var(--srs3)">0.0</div><div class="l">Mean response severity, 0&ndash;4</div></div>
 
-<!-- 4. FLOATING DASHBOARD PANELS -->
-<div id="workspace">
-    <!-- LEFT PANEL: GALACTIC INTELLIGENCE -->
-    <div class="panel-box interactive-panel">
-        <div class="panel-title">Galactic Intelligence</div>
-        
-        <div class="metric-card">
-            <div class="metric-val" id="intel-count">0</div>
-            <div class="metric-lbl">Total Logged Movements</div>
-        </div>
+      <div class="corr" id="corr"></div>
 
-        <div class="metric-card">
-            <div class="metric-val" id="intel-concession" style="color: var(--tactical-blue);">0%</div>
-            <div class="metric-lbl">Policy Concession Rate</div>
-        </div>
+      <div class="finding" id="finding">
+        <b>Standing finding</b>
+        Pressure does not predict concession in this set. The 2024&ndash;25 farmers' agitation scored 73 and ran
+        400 days for nothing; the Noida wage strike scored 38 and ran nine days for a 20% statutory wage revision.
+        What separates them is the price of the demand. A wage notification is an executive signature.
+        A legal MSP guarantee is a permanent fiscal commitment that crosses a veto point no crowd can reach.
+      </div>
 
-        <div class="metric-card">
-            <div class="metric-val" id="intel-median" style="color: var(--pulp-red); font-size: 2.2rem;">0 DAYS</div>
-            <div class="metric-lbl">Median Protest Duration</div>
-        </div>
-
-        <div style="font-size: 0.75rem; color: #888; margin-top: 10px; border-top: 1px dashed #444; padding-top: 8px;">
-            <strong>PRIMARY HUB:</strong> <span id="intel-hub" style="color:#fff;">Delhi NCR</span><br>
-            <strong>DATA STATUS:</strong> SYNCED WITH GOOGLE WORKSPACE
-        </div>
+      <div class="p-head" style="padding:8px 0;border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);margin-bottom:11px">
+        Index weights <span>LIVE</span>
+      </div>
+      <div id="weights"></div>
+      <div class="caveat">
+        <b>These weights are arbitrary.</b> Drag them and watch the rankings move. Any protest index
+        that hides this step is selling you a ranking as though it were a measurement.
+      </div>
     </div>
+  </section>
 
-    <!-- CENTER SPACER (Leaves Satellite Map Visible) -->
-    <div></div>
-
-    <!-- RIGHT PANEL: CONFLICT INDEX & RECENT EVENTS -->
-    <div class="panel-box interactive-panel">
-        <div class="panel-title">Conflict Systems</div>
-        <div style="font-size: 0.7rem; color: #aaa; margin-bottom: 10px;">Click system to inspect sci-fi character dossier:</div>
-        <div id="protest-list-container">
-            <!-- Dynamic items injected here -->
-        </div>
+  <!-- CENTER -->
+  <section class="panel centre" aria-label="Visualisation">
+    <div class="p-head" id="view-title">Star map <span id="view-sub">GEOGRAPHIC DISTRIBUTION</span></div>
+    <div style="flex:1 1 auto;position:relative;min-height:0">
+      <div class="view on" id="v-map"><div id="map"></div></div>
+      <div class="view" id="v-grid"><div class="svgwrap"><svg class="plot" id="svg-grid" role="img" aria-label="Pressure against state response severity"></svg></div></div>
+      <div class="view" id="v-time"><div class="svgwrap"><svg class="plot" id="svg-time" role="img" aria-label="Protest duration trajectories"></svg></div></div>
+      <div class="view" id="v-book"><div class="book" id="book"></div></div>
     </div>
-</div>
+  </section>
 
-<!-- 5. HYPERSPACE TIMELINE -->
+  <!-- RIGHT -->
+  <section class="panel right" aria-label="Case list">
+    <div class="p-head">Cases <span id="sortlbl">BY PRESSURE</span></div>
+    <div class="p-body" id="cases"></div>
+  </section>
+</main>
+
+<!-- ============ STATUS BAR ============ -->
 <footer>
-    <div class="timeline-label">HYPERSPACE NAVIGATOR:</div>
-    <div class="timeline-track">
-        <div class="timeline-node active" onclick="filterYearNode('ALL', this)">ALL</div>
-        <div class="timeline-node" onclick="filterYearNode('2021', this)">2021</div>
-        <div class="timeline-node" onclick="filterYearNode('2022', this)">2022</div>
-        <div class="timeline-node" onclick="filterYearNode('2023', this)">2023</div>
-        <div class="timeline-node" onclick="filterYearNode('2024', this)">2024</div>
-        <div class="timeline-node" onclick="filterYearNode('2025', this)">2025</div>
-        <div class="timeline-node" onclick="filterYearNode('2026', this)">2026</div>
-    </div>
+  <span><b>SAMPLE</b> purposive, n=13</span>
+  <span><b>COVERAGE</b> Nov 2020 &ndash; Aug 2026</span>
+  <span><b>UPDATED</b> 17 Aug 2026</span>
+  <div class="legend" id="legend"></div>
 </footer>
 
-<!-- 6. PULP FICTION DOSSIER MODAL -->
-<div class="modal-overlay" id="dossier-modal">
-    <div class="dossier-card">
-        <div class="dossier-close" onclick="closeDossier()">X</div>
-        <div class="dossier-badge" id="d-class-badge">CLASS III — NATIONAL MOVEMENT</div>
-        <h2 class="dossier-title" id="d-title">THE FARMERS' PROTEST</h2>
-        
-        <div class="dossier-grid">
-            <div class="dossier-field"><strong>LOCATION SECTOR</strong><span id="d-location">Delhi NCR Borders</span></div>
-            <div class="dossier-field"><strong>TIME PERIOD</strong><span id="d-period">Nov 2020 – Dec 2021</span></div>
-            <div class="dossier-field"><strong>ISSUE DOMAIN</strong><span id="d-issue">Agriculture / Farm Acts</span></div>
-            <div class="dossier-field"><strong>ESTIMATED SCALE</strong><span id="d-scale">National (Very Large)</span></div>
-            <div class="dossier-field"><strong>PRIMARY ACTORS</strong><span id="d-actors">Samyukt Kisan Morcha / Farm Unions</span></div>
-            <div class="dossier-field"><strong>STATE RESPONSE</strong><span id="d-response">Negotiation ➔ Repeal of Laws</span></div>
-            <div class="dossier-field"><strong>POLICY OUTCOME</strong><span id="d-outcome">Policy Repealed / Full Concession</span></div>
-            <div class="dossier-field"><strong>CONFLICT INTENSITY SCORE</strong><span id="d-score">58.4 (Class IV Challenge)</span></div>
-        </div>
-
-        <div class="mission-brief">
-            <h4>// MISSION BRIEF & TACTICAL ANALYSIS</h4>
-            <div id="d-brief">
-                Body paragraph detailing the movement trajectories, road blockades, negotiations, and outcome.
-            </div>
-        </div>
-    </div>
+<!-- ============ DOSSIER ============ -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="d-title">
+  <article class="dossier">
+    <button class="d-close" id="d-close" aria-label="Close dossier">&times;</button>
+    <div class="d-strip" id="d-strip"></div>
+    <h2 class="d-title" id="d-title"></h2>
+    <div class="d-alt" id="d-alt"></div>
+    <div class="scorebox" id="d-score"></div>
+    <div class="d-grid" id="d-grid"></div>
+    <div class="brief" id="d-brief"></div>
+    <div id="d-note"></div>
+    <div class="srcs" id="d-srcs"></div>
+  </article>
 </div>
 
 <script>
-    // ==========================================
-    // DATA CORE & DATABASE SCHEMATICS
-    // ==========================================
-    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkGQmLK7N9IEF7jm0F-s1bMpTL3Cx1d6WQlf0EvTH6xEZKZVsqzmT0ie6ilifFt8aFj7ju05CLaThx/pub?output=csv";
+"use strict";
 
-    // Rich initial Dataset mapped strictly to research parameters
-    let rawProtestData = [
-        {
-            id: "farmers1",
-            name: "Shambhu-Singhu Blockade",
-            lat: 28.7041, lng: 77.1025,
-            location: "Delhi NCR Borders",
-            year: "2021",
-            issue: "Agriculture",
-            title: "The Great Agrarian Rebellion",
-            scale: "National",
-            duration: 380, // days
-            actors: "Samyukt Kisan Morcha & Farmer Unions",
-            response: "Blockades ➔ High-level Negotiations ➔ Repeal",
-            outcome: "Policy Changed",
-            tagline: "They tried to bury us. They didn’t know we were seeds.",
-            brief: "Legions of farmers from Punjab and Haryana set up long-term semi-permanent encampments at Singhu and Tikri borders. Utilizing tractors as defensive perimeter lines, the movement forced the central government to repeal the three farm laws after 13 months of continuous mobilization."
-        },
-        {
-            id: "jantar23",
-            name: "Jantar Mantar Arena",
-            lat: 28.6271, lng: 77.2166,
-            location: "Delhi Core Sector",
-            year: "2023",
-            issue: "Gender",
-            title: "The Champion Wrestlers' Stand",
-            scale: "National",
-            duration: 40,
-            actors: "Olympic Wrestlers & Citizen Collectives",
-            response: "Police Clearing ➔ Delayed Legal Action",
-            outcome: "Partial Concession",
-            tagline: "You read the Constitution, don't you? Allow me to retort!",
-            brief: "India's top Olympic wrestlers launched a sit-in protest at Jantar Mantar demanding the arrest and removal of the Wrestling Federation of India chief over allegations of sexual harassment, provoking widespread national civil society debates."
-        },
-        {
-            id: "rgkar24",
-            name: "Kolkata Medical Sector",
-            lat: 22.5726, lng: 88.3639,
-            location: "Kolkata Prime",
-            year: "2024",
-            issue: "Gender",
-            title: "The Healers' Strike",
-            scale: "National",
-            duration: 45,
-            actors: "Junior Doctors & Citizen Collectives",
-            response: "Supreme Court Intervention ➔ Institutional Promises",
-            outcome: "Ongoing",
-            tagline: "The path of the righteous healer is beset on all sides...",
-            brief: "Following a tragic sexual violence incident at RG Kar Medical College, doctors across India downed tools. Night marches titled 'Reclaim the Night' saw tens of thousands of citizens marching with candles and neon signs across West Bengal."
-        },
-        {
-            id: "leh24",
-            name: "Ice-World Leh",
-            lat: 34.1526, lng: 77.5771,
-            location: "Ladakh High Frontier",
-            year: "2024",
-            issue: "Environment",
-            title: "The Sub-Zero Fast",
-            scale: "State",
-            duration: 21,
-            actors: "Sonam Wangchuk & Apex Body Leh",
-            response: "Ministry Talks ➔ Security Restrictions",
-            outcome: "Negotiations",
-            tagline: "Are you cold? Good. Now watch me fast till the ice melts.",
-            brief: "Climate activist Sonam Wangchuk led a 21-day sub-zero climate fast demanding Sixth Schedule status for Ladakh to protect its fragile Himalayan ecosystem and indigenous land rights from industrial exploitation."
-        },
-        {
-            id: "agnipath22",
-            name: "Agnipath Railway Rim",
-            lat: 25.5941, lng: 85.1376,
-            location: "Bihar & UP Corridors",
-            year: "2022",
-            issue: "Education",
-            title: "The Recruit's Mutiny",
-            scale: "National",
-            duration: 10,
-            actors: "Military Aspirants & Youth Formations",
-            response: "Police Dispersal ➔ Scheme Amendments",
-            outcome: "No Major Change",
-            tagline: "Four years? We don't do four years. We do a lifetime, man!",
-            brief: "Widespread protests erupted across Bihar, Uttar Pradesh, and Telangana following the announcement of the short-term 'Agnipath' military recruitment scheme. Protesters targeted transport infrastructure, demanding permanent commissions."
-        },
-        {
-            id: "truckers24",
-            name: "Highway Freight Lanes",
-            lat: 19.0760, lng: 72.8777,
-            location: "Pan-India Freight Corridors",
-            year: "2024",
-            issue: "Labour",
-            title: "The Kessel Freight Blockade",
-            scale: "National",
-            duration: 3,
-            actors: "All India Motor Transport Congress & Drivers",
-            response: "Government Reassurance ➔ Law Put on Hold",
-            outcome: "Policy Changed",
-            tagline: "Nobody drives this rig but me, and I ain't driving.",
-            brief: "Truck drivers launched a strike protesting strict hit-and-run penalty provisions in the Bharatiya Nyaya Sanhita. The blockade led to fuel station panic buying across major metro cities until the government agreed to delay implementation."
-        }
-    ];
+/* =========================================================
+   DATA
+   Every record is hand-coded against the codebook. Fields:
+     participation_band  1 <1k | 2 1k-10k | 3 10k-100k | 4 100k-1M | 5 >1M
+     organisation        0 spontaneous | 1 single local body | 2 formal union/assoc | 3 federated coalition
+     disruption          0 symbolic | 1 local obstruction | 2 encampment/sectoral strike | 3 national supply hit
+     srs                 0 none | 1 administrative | 2 non-lethal force | 3 mass detention/legal | 4 lethal
+     venue               which institution actually moved
+   ========================================================= */
+const CASES = [
+{
+  id:"farm2021", title:"The Long Encampment", alt:"2020\u201321 farmers' protest \u00b7 Singhu, Tikri, Ghazipur",
+  lat:28.826, lng:77.121, place:"Delhi border camps", state:"Delhi / Haryana / Uttar Pradesh",
+  start:"2020-11-26", end:"2021-12-11", days:380, year:"2021",
+  issue:"Agriculture", scale:"National",
+  participation_band:5, organisation:3, disruption:3, states_affected:12,
+  srs:3, outcome:"Policy changed", venue:"Legislature",
+  actors:"Samyukta Kisan Morcha, an umbrella of roughly 500 farm unions",
+  response:"Barricades, water cannon, trenching of highways, internet suspension at camps, eleven rounds of ministerial talks",
+  brief:[
+    "Farmers from Punjab, Haryana and western Uttar Pradesh converted three national highways into semi-permanent settlements with langars, libraries, medical tents and their own newspapers. Tractor trolleys served as housing and as a physical barrier the police could not clear without a politically unacceptable amount of force.",
+    "The campaign survived a winter, a monsoon, the Republic Day tractor rally that briefly turned against it, and the Lakhimpur Kheri killings. It ended when the Prime Minister announced repeal on 19 November 2021 and Parliament passed the Farm Laws Repeal Act within a fortnight, five months before Punjab and Uttar Pradesh went to the polls."
+  ],
+  note:"Response severity is coded 3, not 4. Protester deaths at Lakhimpur Kheri were caused by a vehicle in a minister's convoy rather than by policing, and the codebook reserves tier 4 for deaths arising from state coercive action. This is a judgment call and a reasonable coder could dispute it.",
+  confidence:"High",
+  srcs:[["Farm Laws Repeal Act, 2021 \u2014 India Code","https://www.indiacode.nic.in/"],["2020\u20132021 Indian farmers' protest \u2014 Wikipedia","https://en.wikipedia.org/wiki/2020%E2%80%932021_Indian_farmers%27_protest"]]
+},
+{
+  id:"agni2022", title:"Ten Days of Fire", alt:"Agnipath recruitment protests",
+  lat:25.594, lng:85.138, place:"Bihar and Uttar Pradesh rail corridors", state:"Bihar / Uttar Pradesh / Telangana",
+  start:"2022-06-14", end:"2022-06-24", days:11, year:"2022",
+  issue:"Employment & Recruitment", scale:"National",
+  participation_band:4, organisation:0, disruption:3, states_affected:13,
+  srs:4, outcome:"Partial concession", venue:"Executive",
+  actors:"Military aspirants and coaching-centre cohorts, with no lead organisation",
+  response:"Police firing at Secunderabad station killing one protester, mass FIRs, preventive detentions, internet suspension in parts of Bihar",
+  brief:[
+    "Within seventy-two hours of the Agnipath announcement, aspirants who had spent years preparing for permanent army recruitment set fire to trains across thirteen states. More than five hundred services were cancelled. The disruption was national and immediate.",
+    "It was also leaderless, and it collapsed in ten days. The government relaxed the upper age limit once for the 2022 cycle and announced reservation quotas in the central armed police forces. The four-year tenure, the 25% retention ceiling and the absence of pension, meaning the parts of the scheme people were actually protesting, were left untouched."
+  ],
+  note:"Coded as partial concession rather than no major change. The age relaxation and CAPF quotas were real state actions attributable to the protest, but neither touched the scheme's contested design. A stricter coder would put this at no major change and the classification is genuinely contestable.",
+  confidence:"High",
+  srcs:[["Agnipath scheme \u2014 Wikipedia","https://en.wikipedia.org/wiki/Agnipath_Scheme"]]
+},
+{
+  id:"wres2023", title:"Champions on the Pavement", alt:"Wrestlers' protest at Jantar Mantar",
+  lat:28.6271, lng:77.2166, place:"Jantar Mantar, New Delhi", state:"Delhi",
+  start:"2023-04-23", end:"2023-05-28", days:36, year:"2023",
+  issue:"Gender & Institutional Accountability", scale:"National",
+  participation_band:2, organisation:2, disruption:1, states_affected:3,
+  srs:3, outcome:"Partial concession", venue:"Judiciary",
+  actors:"Olympic and Commonwealth medallists, later joined by khap panchayats and farm unions",
+  response:"Forcible clearing of the protest site on 28 May, detention of protesters, FIRs for breach of prohibitory orders",
+  brief:[
+    "This was the smallest crowd in the dataset and one of the most consequential. A few dozen wrestlers with national reputations sat at a designated protest site and made the Wrestling Federation of India's leadership the story of the summer.",
+    "The Supreme Court forced registration of the FIR in April. The site was cleared on 28 May when protesters attempted to march towards the new Parliament building. A chargesheet followed, the federation's newly elected body was suspended by the sports ministry, and the accused remained politically insulated throughout."
+  ],
+  note:"Scale is coded National on the basis of media reach and the involvement of national sporting bodies, while geographic spread stays at 3 states. The index treats these separately, which is why this case scores low on pressure and still produced movement.",
+  confidence:"High",
+  srcs:[["2023 Indian wrestlers' protest \u2014 Wikipedia","https://en.wikipedia.org/wiki/2023_Indian_wrestlers%27_protest"]]
+},
+{
+  id:"rgkar2024", title:"Reclaim the Night", alt:"RG Kar rape and murder \u00b7 doctors' agitation",
+  lat:22.5726, lng:88.3639, place:"Kolkata", state:"West Bengal",
+  start:"2024-08-09", end:"2024-10-21", days:74, year:"2024",
+  issue:"Gender & Institutional Accountability", scale:"National",
+  participation_band:4, organisation:2, disruption:2, states_affected:10,
+  srs:2, outcome:"Partial concession", venue:"Judiciary",
+  actors:"Junior doctors' front, IMA, FAIMA, and very large unaffiliated citizen turnouts",
+  response:"Clearing of the hospital protest site, tear gas and water cannon at the Nabanna march, detentions, essential services legislation threatened",
+  brief:[
+    "The rape and murder of a postgraduate trainee inside her own hospital produced two overlapping movements: a sectoral strike by junior doctors that suspended elective services nationally, and a night-march movement that put unprecedented numbers of women on Kolkata's streets without any organisation calling them there.",
+    "The Supreme Court took suo motu cognisance and constituted a National Task Force on healthcare worker safety. The college principal was removed, the investigation moved to the CBI, and the state assembly passed the Aparajita Bill. The task force reported; the bill has still not received presidential assent."
+  ],
+  note:"Duration runs from the incident to the end of the junior doctors' hunger strike. Citizen mobilisation continued sporadically well beyond this window and any endpoint choice here is arbitrary.",
+  confidence:"High",
+  srcs:[["Aparajita Woman and Child Bill, 2024 \u2014 Wikipedia","https://en.wikipedia.org/wiki/Aparajita_Woman_and_Child_(West_Bengal_Criminal_Laws_Amendment)_Bill,_2024"]]
+},
+{
+  id:"truck2024", title:"Three Days to a Repeal", alt:"Transporters' strike against BNS s.106(2)",
+  lat:19.076, lng:72.8777, place:"National freight corridors", state:"Pan-India",
+  start:"2024-01-01", end:"2024-01-03", days:3, year:"2024",
+  issue:"Labour & Transport", scale:"National",
+  participation_band:3, organisation:2, disruption:3, states_affected:12,
+  srs:1, outcome:"Policy changed", venue:"Executive",
+  actors:"All India Motor Transport Congress and largely unaffiliated drivers",
+  response:"Localised detentions, a same-week meeting between the Union Home Secretary and transporters",
+  brief:[
+    "Drivers stopped work over the hit-and-run provision in the Bharatiya Nyaya Sanhita, which raised the penalty for fleeing an accident to ten years. Fuel tankers stopped moving. Petrol pumps in several states ran dry within forty-eight hours and queues appeared on television.",
+    "On day three the Home Ministry announced the provision would not be brought into force without consulting the transporters' body. Three days of pressure, no encampment, no repression to speak of, and a full hold on implementation."
+  ],
+  note:"Coded Policy changed rather than Partial. The provision was not repealed, but implementation was suspended indefinitely, which was the stated demand. Anyone treating repeal as the only qualifying outcome should recode this as partial.",
+  confidence:"High",
+  srcs:[["Bharatiya Nyaya Sanhita, 2023 \u2014 India Code","https://www.indiacode.nic.in/"]]
+},
+{
+  id:"leh2024", title:"Twenty-One Days at Minus Twenty", alt:"Wangchuk climate fast, Leh",
+  lat:34.1526, lng:77.5771, place:"Leh, Ladakh", state:"Ladakh",
+  start:"2024-03-06", end:"2024-03-26", days:21, year:"2024",
+  issue:"Land, Environment & Autonomy", scale:"State / UT",
+  participation_band:3, organisation:3, disruption:0, states_affected:1,
+  srs:1, outcome:"Negotiations continuing", venue:"None",
+  actors:"Leh Apex Body and Kargil Democratic Alliance, fronted by Sonam Wangchuk",
+  response:"No coercive action during the fast; detention of marchers in Delhi that October",
+  brief:[
+    "A twenty-one day fast in sub-zero conditions, demanding statehood for Ladakh and Sixth Schedule protection for its land and jobs. Zero disruption to anything. Its entire theory of change was moral visibility.",
+    "It generated enormous sympathetic coverage and no policy movement. The high-powered committee process continued without conclusion. In October, marchers walking from Leh towards Delhi were detained on arrival."
+  ],
+  note:"Disruption is coded 0, which drags the pressure score down sharply. That is the index working correctly: fasting imposes cost on the faster, not on the state, and the outcome here is consistent with that.",
+  confidence:"High",
+  srcs:[["Ladakh protests \u2014 Wikipedia","https://en.wikipedia.org/wiki/Ladakh_protests"]]
+},
+{
+  id:"farm2025", title:"Four Hundred Days at the Border", alt:"2024\u201325 farmers' protest \u00b7 Shambhu, Khanauri",
+  lat:30.4167, lng:76.6667, place:"Shambhu and Khanauri border points", state:"Punjab / Haryana",
+  start:"2024-02-13", end:"2025-03-19", days:400, year:"2025",
+  issue:"Agriculture", scale:"National",
+  participation_band:4, organisation:3, disruption:2, states_affected:4,
+  srs:4, outcome:"No major change", venue:"None",
+  actors:"Samyukta Kisan Morcha (non-political) and Kisan Mazdoor Morcha",
+  response:"Multi-layer cement barricading, tear gas dropped by drone, rubber bullets, a protester death at Khanauri, internet suspension across seven Haryana districts, mass detention at the eviction",
+  brief:[
+    "The sequel ran longer than the original and achieved nothing. Blocked at the Punjab\u2013Haryana border rather than at Delhi's doorstep, the camps never reached the capital and never reached national consciousness the way Singhu had.",
+    "Jagjit Singh Dallewal fasted for 131 days. Shubhkaran Singh, aged twenty-one, died at Khanauri in February 2024. Punjab Police cleared both camps on 19 March 2025 and detained the leadership. The demand throughout was a legal guarantee of minimum support price, and it was never on the table."
+  ],
+  note:"This is the control case for the 2021 protest. Comparable organisational density, longer duration, more severe repression, narrower geographic base, opposite outcome. The difference in the demand matters more than the difference in the pressure.",
+  confidence:"High",
+  srcs:[["2024\u20132025 Indian farmers' protest \u2014 Wikipedia","https://en.wikipedia.org/wiki/2024%E2%80%942025_Indian_farmers%27_protest"],["Dallewal ends fast \u2014 News on AIR","https://www.newsonair.gov.in/farmer-leader-jagjit-singh-dallewal-ends-fast-vows-to-continue-msp-fight"]]
+},
+{
+  id:"wbteach2025", title:"Twenty-Six Thousand Cancellations", alt:"West Bengal teachers' protests",
+  lat:22.5726, lng:88.3639, place:"Kolkata and Howrah", state:"West Bengal",
+  start:"2025-04-03", end:"2025-07-28", days:116, year:"2025",
+  issue:"Employment & Recruitment", scale:"State / UT",
+  participation_band:3, organisation:2, disruption:1, states_affected:1,
+  srs:2, outcome:"Ongoing", venue:"Judiciary",
+  actors:"Dismissed teaching and non-teaching staff from the 2016 SSC panel",
+  response:"Lathi charge and detentions at the Nabanna Chalo march, refusal of protest permissions",
+  brief:[
+    "The Supreme Court annulled 25,753 appointments after finding the 2016 School Service Commission recruitment irreparably tainted. Teachers who could not be individually shown to be tainted lost their jobs alongside those who were.",
+    "The protest has no obvious target. The state government did not dismiss them and cannot reinstate them. The court that dismissed them does not respond to street pressure. This is what mobilisation looks like when the veto point is judicial and the concession would require the court to reverse itself."
+  ],
+  note:"Duration runs to the last confirmed major action rather than to the present. The dispute is unresolved and the true figure is larger. Confidence is medium for events after mid-2025.",
+  confidence:"Medium",
+  srcs:[["2025 West Bengal teachers' protests \u2014 Wikipedia","https://en.wikipedia.org/wiki/2025_West_Bengal_teachers%27_protests"]]
+},
+{
+  id:"ilm2025", title:"Posters and Prohibitions", alt:"'I Love Muhammad' protests, Uttar Pradesh",
+  lat:26.4499, lng:80.3319, place:"Kanpur, Bareilly and other Uttar Pradesh cities", state:"Uttar Pradesh",
+  start:"2025-09-04", end:"2025-10-05", days:31, year:"2025",
+  issue:"Religion & Expression", scale:"State / UT",
+  participation_band:3, organisation:1, disruption:1, states_affected:2,
+  srs:3, outcome:"No major change", venue:"None",
+  actors:"Local religious associations and unaffiliated participants across several districts",
+  response:"More than eighty arrests including a prominent cleric, stringent legal provisions invoked, prohibitory orders across multiple districts",
+  brief:[
+    "A dispute over the removal of banners during a Mawlid procession in Kanpur spread into episodic demonstrations across several Uttar Pradesh cities through September 2025.",
+    "The state response was legal rather than negotiated. Arrests ran into the dozens, stringent provisions were invoked against organisers, and prohibitory orders were used pre-emptively in multiple districts. No policy question was on the table and none was resolved."
+  ],
+  note:"Included because a protest database that logs only movements whose demands are legible as policy will systematically undercount contentious politics around expression and religion. Participation figures are contested and confidence is medium.",
+  confidence:"Medium",
+  srcs:[["2025 'I Love Muhammad' protests \u2014 Wikipedia","https://en.wikipedia.org/wiki/2025_I_Love_Muhammad_protests"]]
+},
+{
+  id:"leh2025", title:"Four Dead in Leh", alt:"Ladakh statehood agitation and police firing",
+  lat:34.1642, lng:77.5848, place:"Leh, Ladakh", state:"Ladakh",
+  start:"2025-09-10", end:"2025-10-07", days:28, year:"2025",
+  issue:"Land, Environment & Autonomy", scale:"State / UT",
+  participation_band:3, organisation:3, disruption:2, states_affected:1,
+  srs:4, outcome:"No major change", venue:"None",
+  actors:"Leh Apex Body, Kargil Democratic Alliance, and youth groups outside both",
+  response:"Police firing killing four and injuring dozens, curfew, sweeping internet shutdown, detention of Sonam Wangchuk under the National Security Act",
+  brief:[
+    "The second Ladakh entry is the same movement with the fast turned lethal. A hunger strike began on 10 September. On 24 September, after two fasting men were hospitalised, youth groups called a shutdown, the BJP office and the hill council building were attacked, and police opened fire. Four people died.",
+    "The government detained Wangchuk under preventive detention law and briefed against the movement's foreign links. Both civil society bodies walked out of the October talks. This is the maximum-repression observation in the dataset and it produced the least."
+  ],
+  note:"The state's own account of the sequence differs materially from the accounts given by residents and rights organisations. The record codes what is not in dispute: four deaths from police firing, curfew, internet shutdown, preventive detention.",
+  confidence:"High",
+  srcs:[["India: 4 Dead in Protests over Ladakh Statehood \u2014 Human Rights Watch","https://www.hrw.org/news/2025/09/25/india-4-dead-in-protests-over-ladakh-statehood"],["Ladakh talks collapse \u2014 Deccan Herald","https://www.deccanherald.com/india/ladakh/ladakh-statehood-row-talks-with-centre-collapse-after-boycott-by-leh-apex-body-and-kargil-democratic-alliance-3748440"]]
+},
+{
+  id:"noida2026", title:"Nine Days for Twenty Per Cent", alt:"Noida industrial wage protests",
+  lat:28.5355, lng:77.3910, place:"Noida, Gautam Buddh Nagar", state:"Uttar Pradesh",
+  start:"2026-04-10", end:"2026-04-18", days:9, year:"2026",
+  issue:"Labour & Transport", scale:"Local",
+  participation_band:3, organisation:1, disruption:2, states_affected:1,
+  srs:3, outcome:"Policy changed", venue:"Executive",
+  actors:"Industrial workers, largely without union sponsorship at the outset, joined later by domestic workers",
+  response:"Tear gas on the fourth day, more than three hundred arrests, seven FIRs",
+  brief:[
+    "Factory workers in Noida stopped work over wages. By the fourth day the protest had turned violent and police used tear gas; over three hundred people were arrested. Domestic workers joined by the sixteenth.",
+    "On 18 April the Uttar Pradesh government approved revised minimum wage rates across categories statewide, a rise of roughly twenty per cent. Nine days, one district, a scattered and largely unorganised crowd, and the fastest full concession in the dataset."
+  ],
+  note:"The lowest pressure score of any case that won a full concession. A state minimum wage revision is issued by executive notification, costs the exchequer nothing directly, and lets the government claim credit. Cheap demands get granted.",
+  confidence:"Medium",
+  srcs:[["2026 Noida workers protest \u2014 Wikipedia","https://en.wikipedia.org/wiki/2026_Noida_workers_protest"],["Police fire tear gas as Noida workers' protest turns violent \u2014 Reuters","https://www.reuters.com/business/world-at-work/police-fire-tear-gas-workers-protest-indias-noida-turns-violent-2026-04-13/"]]
+},
+{
+  id:"cjp2026", title:"Chalo Sansad", alt:"CJP examination-reform march, Jantar Mantar",
+  lat:28.6270, lng:77.2167, place:"Jantar Mantar and Parliament Street, New Delhi", state:"Delhi",
+  start:"2026-06-06", end:"2026-08-01", days:57, year:"2026",
+  issue:"Education & Examinations", scale:"National",
+  participation_band:4, organisation:2, disruption:2, states_affected:8,
+  srs:3, outcome:"Ongoing", venue:"None",
+  actors:"Cockroach Janata Party and unaffiliated examination aspirants",
+  response:"Permission refused, prohibitory orders under s.163 BNSS across New Delhi district, lathi charge and tear gas on 20 July, internet restriction, metro stations closed, detentions including the founder, fifteen FIRs",
+  brief:[
+    "A movement organised around examination integrity and the demand that the Union Education Minister resign. The 20 July march towards Parliament drew a reported twenty thousand people and ended in a confrontation that closed five metro stations and brought central Delhi to a stop.",
+    "Accounts of what happened diverge sharply. Delhi Police stated no lathi charge occurred and later described the force used as a last resort; multiple outlets published images of it, and a journalist reported pellet injuries. The movement suspended further marches and remains active."
+  ],
+  note:"Lowest-confidence record here. Events are recent, participation figures come from organiser and police estimates that differ by an order of magnitude, and the severity coding rests on contested accounts. Treat the score as provisional.",
+  confidence:"Low",
+  srcs:[["2026 Delhi Jantar Mantar protests \u2014 Wikipedia","https://en.wikipedia.org/wiki/2026_Delhi_Jantar_Mantar_protests"],["Delhi Police lathi-charge CJP protesters \u2014 The Week","https://www.theweek.in/news/india/2026/07/20/cjp-neet-protest-jantar-mantar-parliament-march.html"]]
+},
+{
+  id:"megh2026", title:"On the Wrong Side of the Fence", alt:"Lyngkhong border fencing protest",
+  lat:25.3000, lng:91.8800, place:"Lyngkhong, East Khasi Hills", state:"Meghalaya",
+  start:"2026-06-07", end:"2026-06-07", days:1, year:"2026",
+  issue:"Land, Environment & Autonomy", scale:"Local",
+  participation_band:1, organisation:1, disruption:0, states_affected:1,
+  srs:0, outcome:"Negotiations continuing", venue:"None",
+  actors:"Lyngkhong village residents and the village headman",
+  response:"Memorandum received by the sub-divisional officer, no coercive action",
+  brief:[
+    "Residents of a village metres from the Bangladesh border demonstrated against a fence alignment that would leave their homes outside it. They are not against the fence. They want it built on the zero line so the village stays inside the country.",
+    "One day, one village, a memorandum to a sub-divisional officer. Included deliberately as the floor of the dataset: the ordinary, unremarkable, overwhelmingly common form of Indian contentious politics that salience-based case selection erases."
+  ],
+  note:"The resolution depends on a bilateral decision pending with the government of Bangladesh, which places the effective veto point outside the Indian state entirely.",
+  confidence:"Medium",
+  srcs:[["Meghalaya border villagers protest fencing plan \u2014 India Today NE","https://www.indiatodayne.in/meghalaya/story/meghalaya-border-villagers-protest-fencing-plan-fear-being-left-outside-security-barrier-1404366-2026-06-08"]]
+}
+];
 
-    let currentFilteredData = [...rawProtestData];
-    let map;
-    let markersLayer;
+/* ===================== INDEX ===================== */
+const DEFAULT_W = {duration:25, reach:20, participation:25, organisation:15, disruption:15};
+const W_LABEL = {
+  duration:"Duration", reach:"Geographic reach", participation:"Participation band",
+  organisation:"Organisational density", disruption:"Disruption imposed"
+};
+let W = Object.assign({}, DEFAULT_W);
 
-    // ==========================================
-    // INITIALIZATION & MAP ENGINE
-    // ==========================================
-    function enterGalaxy() {
-        document.getElementById('poster-landing').style.display = 'none';
-        initMap();
-        loadSheetData();
+const LOG_CAP = Math.log10(500);   // 500 days saturates the duration term
+const REACH_CAP = 15;              // 15 states counts as national saturation
+
+function components(c){
+  return {
+    duration: Math.min(Math.log10(c.days + 1) / LOG_CAP, 1),
+    reach: Math.min(c.states_affected / REACH_CAP, 1),
+    participation: (c.participation_band - 1) / 4,
+    organisation: c.organisation / 3,
+    disruption: c.disruption / 3
+  };
+}
+function mpi(c){
+  const n = components(c);
+  let raw = 0, tot = 0;
+  for (const k in W){ raw += n[k] * W[k]; tot += W[k]; }
+  return tot ? (raw / tot) * 100 : 0;
+}
+function tier(s){
+  if (s >= 70) return {n:"IV", label:"System-level challenge", css:"#c8102e", fg:"#fff"};
+  if (s >= 45) return {n:"III", label:"National movement", css:"#f5842a", fg:"#000"};
+  if (s >= 25) return {n:"II", label:"Regional mobilisation", css:"#ffd94a", fg:"#000"};
+  return {n:"I", label:"Local disturbance", css:"#6fc9b0", fg:"#000"};
+}
+const SRS_COLOR = ["#3fa9c9","#6fc9b0","#ffd94a","#f5842a","#e0242e"];
+const SRS_NAME = [
+  "0 \u00b7 No coercive response",
+  "1 \u00b7 Administrative restriction",
+  "2 \u00b7 Non-lethal force",
+  "3 \u00b7 Mass detention or legal action",
+  "4 \u00b7 Lethal force"
+];
+const OUT_COLOR = {
+  "Policy changed":"#6fc9b0",
+  "Partial concession":"#ffd94a",
+  "Negotiations continuing":"#4dd8ff",
+  "No major change":"#e0242e",
+  "Protest withdrawn":"#9aa7b4",
+  "Ongoing":"#b07fd8"
+};
+
+/* ===================== STATE ===================== */
+let VIEW = "map";
+let FILTERED = CASES.slice();
+let map, layer;
+let lastFocus = null;
+
+const $ = id => document.getElementById(id);
+const uniq = k => [...new Set(CASES.map(c => c[k]))].sort();
+
+/* ===================== STARFIELD ===================== */
+(function stars(){
+  const cv = $("starfield"), ctx = cv.getContext("2d");
+  let pts = [];
+  function build(){
+    cv.width = innerWidth; cv.height = innerHeight;
+    const n = Math.round(innerWidth * innerHeight / 5200);
+    pts = Array.from({length:n}, () => ({
+      x: Math.random()*cv.width, y: Math.random()*cv.height,
+      r: Math.random()*1.15 + .18, a: Math.random()*.55 + .12,
+      s: Math.random()*.008 + .002, p: Math.random()*Math.PI*2
+    }));
+  }
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function draw(t){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    for (const p of pts){
+      const a = still ? p.a : p.a * (0.62 + 0.38*Math.sin(t*p.s + p.p));
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.r > 1.05 ? "#9fd8ff" : "#ffffff";
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.284); ctx.fill();
     }
+    ctx.globalAlpha = 1;
+    if (!still) requestAnimationFrame(draw);
+  }
+  build(); requestAnimationFrame(draw);
+  addEventListener("resize", () => { build(); if (still) draw(0); });
+})();
 
-    function initMap() {
-        // Initialize Leaflet Map Centered on India with Dark Tactical Satellite Tiles
-        map = L.map('leaflet-map', {
-            center: [22.5937, 78.9629],
-            zoom: 5,
-            zoomControl: false
-        });
+/* ===================== FILTERS ===================== */
+function fillSelect(el, items, allLabel){
+  el.innerHTML = `<option value="ALL">${allLabel}</option>` +
+    items.map(v => `<option>${v}</option>`).join("");
+}
+fillSelect($("f-issue"), uniq("issue"), "All issues");
+fillSelect($("f-scale"), uniq("scale"), "All scales");
+fillSelect($("f-out"),   uniq("outcome"), "All outcomes");
+$("f-srs").innerHTML = `<option value="ALL">All tiers</option>` +
+  SRS_NAME.map((n,i) => `<option value="${i}">${n}</option>`).join("");
 
-        // Esri World Imagery (Satellite)
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tactical Sat-Feed | Esri',
-            maxZoom: 10,
-            minZoom: 4
-        }).addTo(map);
+function inPeriod(c, y){
+  if (y === "ALL") return true;
+  const a = +c.start.slice(0,4), b = +c.end.slice(0,4);
+  return +y >= a && +y <= b;   // spans, not just end year
+}
+function applyFilters(){
+  const y = $("f-year").value, i = $("f-issue").value, s = $("f-scale").value,
+        o = $("f-out").value, r = $("f-srs").value;
+  FILTERED = CASES.filter(c =>
+    inPeriod(c, y) &&
+    (i === "ALL" || c.issue === i) &&
+    (s === "ALL" || c.scale === s) &&
+    (o === "ALL" || c.outcome === o) &&
+    (r === "ALL" || c.srs === +r)
+  );
+  renderAll();
+}
+["f-year","f-issue","f-scale","f-out","f-srs"].forEach(id => $(id).addEventListener("change", applyFilters));
+$("btn-reset").addEventListener("click", () => {
+  ["f-year","f-issue","f-scale","f-out","f-srs"].forEach(id => $(id).value = "ALL");
+  W = Object.assign({}, DEFAULT_W); buildWeights(); applyFilters();
+});
 
-        // Dark Canvas Overlay to give a deep space / Star Wars radar hue
-        const darkOverlay = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{y}/{x}{r}.png', {
-            subdomains: 'abcd',
-            maxZoom: 10
-        }).addTo(map);
+/* ===================== WEIGHT SLIDERS ===================== */
+function buildWeights(){
+  $("weights").innerHTML = Object.keys(W).map(k => `
+    <div class="wt">
+      <div class="wt-row"><label for="w-${k}">${W_LABEL[k]}</label><em id="wv-${k}">${W[k]}</em></div>
+      <input type="range" id="w-${k}" min="0" max="40" step="1" value="${W[k]}" aria-label="${W_LABEL[k]} weight">
+    </div>`).join("");
+  Object.keys(W).forEach(k => {
+    $("w-"+k).addEventListener("input", e => {
+      W[k] = +e.target.value; $("wv-"+k).textContent = W[k]; renderAll();
+    });
+  });
+}
+buildWeights();
 
-        markersLayer = L.layerGroup().addTo(map);
-        renderDataOnDashboard(currentFilteredData);
-    }
+/* ===================== MAP ===================== */
+function initMap(){
+  map = L.map("map", { center:[23.2, 80], zoom:5, zoomControl:true, minZoom:4, maxZoom:9,
+                       attributionControl:true, worldCopyJump:false });
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+    { subdomains:"abcd", maxZoom:9, attribution:'&copy; OpenStreetMap &middot; &copy; CARTO' }).addTo(map);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
+    { subdomains:"abcd", maxZoom:9 }).addTo(map);
+  layer = L.layerGroup().addTo(map);
+  drawMap();
+}
+function drawMap(){
+  if (!layer) return;
+  layer.clearLayers();
+  FILTERED.forEach(c => {
+    const s = mpi(c), d = 11 + (s/100)*20;
+    const icon = L.divIcon({
+      className:"",
+      html:`<div class="node ${s>=45?'big':''}" style="width:${d}px;height:${d}px;background:${SRS_COLOR[c.srs]};box-shadow:0 0 ${8+d/2}px ${SRS_COLOR[c.srs]}"></div>`,
+      iconSize:[d,d], iconAnchor:[d/2,d/2]
+    });
+    const m = L.marker([c.lat,c.lng], {icon, keyboard:true, title:c.title}).addTo(layer);
+    m.bindTooltip(
+      `<b style="color:#ffd94a">${c.title.toUpperCase()}</b><br>${c.place}<br>` +
+      `Pressure ${s.toFixed(1)} &middot; Response ${c.srs} &middot; ${c.outcome}`,
+      {direction:"top", offset:[0,-6]});
+    m.on("click", () => openDossier(c));
+  });
+}
 
-    function loadSheetData() {
-        Papa.parse(GOOGLE_SHEET_CSV_URL + "&_cb=" + new Date().getTime(), {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-                if (results.data && results.data.length > 0 && results.data[0].id) {
-                    console.log("Successfully connected to Google Workspace Array!", results.data);
-                    // Merge or overwrite with sheet data if fields match
-                    rawProtestData = results.data.map(item => ({
-                        id: item.id || 'p_' + Math.random(),
-                        name: item.name || 'Unnamed Movement',
-                        lat: parseFloat(item.lat) || 28.6,
-                        lng: parseFloat(item.lng) || 77.2,
-                        location: item.location || 'Indian Sector',
-                        year: item.year || '2024',
-                        issue: item.issue || 'Policy',
-                        title: item.title || item.name,
-                        scale: item.scale || 'National',
-                        duration: parseInt(item.duration) || 15,
-                        actors: item.actors || 'Civil Collectives',
-                        response: item.response || 'State Negotiation',
-                        outcome: item.outcome || 'Negotiations',
-                        tagline: item.tagline || 'A voice in the dark.',
-                        brief: item.body || item.brief || 'No log details available.'
-                    }));
-                    applyFilters();
-                }
-            },
-            error: function(err) {
-                console.warn("Using offline Holocron dataset.", err);
-            }
-        });
-    }
+/* ===================== PRESSURE GRID ===================== */
+function drawGrid(){
+  const svg = $("svg-grid");
+  const box = svg.parentElement.getBoundingClientRect();
+  const W_ = Math.max(box.width - 12, 420), H_ = Math.max(box.height - 12, 360);
+  const m = {t:26, r:22, b:52, l:66};
+  const iw = W_ - m.l - m.r, ih = H_ - m.t - m.b;
+  const x = v => m.l + (v/100)*iw;
+  const y = v => m.t + ih - (v/4)*ih;
 
-    // ==========================================
-    // CONFLICT INDEX CALCULATOR METHODOLOGY
-    // Intensity = (Scale Wt) * (Duration Days * 0.1) * Impact Wt
-    // ==========================================
-    function calculateConflictIndex(item) {
-        let scaleWeight = item.scale === "National" ? 4.0 : (item.scale === "State" ? 2.5 : 1.2);
-        let durationWeight = Math.min((item.duration || 10) * 0.15, 8.0);
-        let outcomeWeight = item.outcome === "Policy Changed" ? 3.0 : 1.5;
+  let g = "";
+  // quadrant washes
+  g += `<rect class="zone" x="${x(50)}" y="${m.t}" width="${iw/2}" height="${ih/2}"/>`;
+  g += `<rect class="zone" x="${m.l}" y="${m.t+ih/2}" width="${iw/2}" height="${ih/2}"/>`;
+  g += `<text class="zonet" x="${x(52)}" y="${m.t+14}">HIGH PRESSURE / HARD RESPONSE</text>`;
+  g += `<text class="zonet" x="${m.l+6}" y="${m.t+ih-8}">LOW PRESSURE / SOFT RESPONSE</text>`;
 
-        let indexScore = (scaleWeight * 3) + (durationWeight * 4) + (outcomeWeight * 2);
-        
-        let classification = "Class I — Local Disturbance";
-        let cssClass = "class-1";
+  for (let v=0; v<=100; v+=20){
+    g += `<line class="axg" x1="${x(v)}" y1="${m.t}" x2="${x(v)}" y2="${m.t+ih}"/>`;
+    g += `<text class="axt" x="${x(v)}" y="${m.t+ih+17}" text-anchor="middle">${v}</text>`;
+  }
+  for (let v=0; v<=4; v++){
+    g += `<line class="axg" x1="${m.l}" y1="${y(v)}" x2="${m.l+iw}" y2="${y(v)}"/>`;
+    g += `<text class="axt" x="${m.l-9}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  }
+  g += `<line class="ax" x1="${m.l}" y1="${m.t+ih}" x2="${m.l+iw}" y2="${m.t+ih}"/>`;
+  g += `<line class="ax" x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${m.t+ih}"/>`;
+  g += `<text class="axl" x="${m.l+iw/2}" y="${m.t+ih+40}" text-anchor="middle">Mobilisation pressure index</text>`;
+  g += `<text class="axl" transform="translate(16,${m.t+ih/2}) rotate(-90)" text-anchor="middle">State response severity</text>`;
 
-        if (indexScore >= 45) {
-            classification = "Class IV — System Challenge";
-            cssClass = "class-4";
-        } else if (indexScore >= 30) {
-            classification = "Class III — National Movement";
-            cssClass = "class-3";
-        } else if (indexScore >= 18) {
-            classification = "Class II — Regional Mobilisation";
-            cssClass = "class-2";
-        }
+  // vertical jitter so cases sharing a response tier do not stack
+  FILTERED.forEach((c,i) => {
+    const s = mpi(c);
+    const r = 5 + c.participation_band * 1.9;
+    const jitter = ((i % 3) - 1) * 7;
+    const cx = x(s), cy = y(c.srs) + jitter;
+    const oc = OUT_COLOR[c.outcome] || "#fff";
+    g += `<g class="pt" data-id="${c.id}" tabindex="0" role="button" aria-label="${c.title}">
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="${SRS_COLOR[c.srs]}" fill-opacity=".82" stroke="${oc}" stroke-width="2.5"/>
+            <text class="ptl" x="${cx + r + 6}" y="${cy + 3.5}">${c.title}</text>
+          </g>`;
+  });
 
-        return { score: indexScore.toFixed(1), classification, cssClass };
-    }
+  svg.setAttribute("viewBox", `0 0 ${W_} ${H_}`);
+  svg.innerHTML = g;
+  svg.querySelectorAll(".pt").forEach(el => {
+    const c = CASES.find(z => z.id === el.dataset.id);
+    el.addEventListener("click", () => openDossier(c));
+    el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openDossier(c); }});
+  });
+}
 
-    // ==========================================
-    // RENDER DASHBOARD COMPONENTS
-    // ==========================================
-    function renderDataOnDashboard(data) {
-        // Clear old markers
-        markersLayer.clearLayers();
+/* ===================== TRAJECTORIES ===================== */
+function drawTime(){
+  const svg = $("svg-time");
+  const box = svg.parentElement.getBoundingClientRect();
+  const rows = FILTERED.length || 1;
+  const rowH = 30;
+  const W_ = Math.max(box.width - 12, 520);
+  const H_ = Math.max(rows * rowH + 74, box.height - 12);
+  const m = {t:26, r:20, b:44, l:210};
+  const iw = W_ - m.l - m.r;
 
-        const listContainer = document.getElementById('protest-list-container');
-        listContainer.innerHTML = '';
+  const T0 = Date.parse("2020-10-01"), T1 = Date.parse("2026-09-01");
+  const x = t => m.l + ((t - T0)/(T1 - T0)) * iw;
 
-        let totalDuration = 0;
-        let policyConcessions = 0;
+  let g = "";
+  for (let yr = 2021; yr <= 2026; yr++){
+    const px = x(Date.parse(yr + "-01-01"));
+    g += `<line class="axg" x1="${px}" y1="${m.t-8}" x2="${px}" y2="${m.t + rows*rowH + 6}"/>`;
+    g += `<text class="axt" x="${px}" y="${m.t + rows*rowH + 26}" text-anchor="middle">${yr}</text>`;
+  }
 
-        data.forEach(item => {
-            // 1. Add Tactical Map Nodes
-            const customIcon = L.divIcon({
-                className: 'tactical-node-icon',
-                iconSize: [16, 16]
-            });
+  const sorted = FILTERED.slice().sort((a,b) => Date.parse(a.start) - Date.parse(b.start));
+  sorted.forEach((c,i) => {
+    const yy = m.t + i*rowH + 12;
+    const x0 = x(Date.parse(c.start)), x1 = Math.max(x(Date.parse(c.end)), x0 + 3);
+    const oc = OUT_COLOR[c.outcome] || "#fff";
+    const short = c.title.length > 26 ? c.title.slice(0,25) + "\u2026" : c.title;
+    g += `<g class="pt" data-id="${c.id}" tabindex="0" role="button" aria-label="${c.title}">
+        <text class="ptl" x="${m.l-12}" y="${yy+4}" text-anchor="end" style="fill:#cfe0f0">${short}</text>
+        <rect x="${x0}" y="${yy-6}" width="${x1-x0}" height="12" fill="${SRS_COLOR[c.srs]}" fill-opacity=".72"/>
+        <circle cx="${x1}" cy="${yy}" r="5.5" fill="${oc}" stroke="#06080d" stroke-width="1.5"/>
+        <text class="ptl" x="${x1+11}" y="${yy+4}" style="fill:#7f8fa3">${c.days}d</text>
+      </g>`;
+  });
 
-            const marker = L.marker([item.lat, item.lng], { icon: customIcon }).addTo(markersLayer);
-            marker.bindTooltip(`<b>${item.name.toUpperCase()}</b><br>${item.issue}`, { direction: 'top' });
-            marker.on('click', () => openDossier(item));
+  svg.setAttribute("viewBox", `0 0 ${W_} ${H_}`);
+  svg.style.height = H_ + "px";
+  svg.innerHTML = g;
+  svg.querySelectorAll(".pt").forEach(el => {
+    const c = CASES.find(z => z.id === el.dataset.id);
+    el.addEventListener("click", () => openDossier(c));
+    el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openDossier(c); }});
+  });
+}
 
-            // 2. Sidebar Conflict List Items
-            const indexData = calculateConflictIndex(item);
-            totalDuration += (item.duration || 10);
-            if(item.outcome === "Policy Changed") policyConcessions++;
+/* ===================== CASE LIST + STATS ===================== */
+function renderCases(){
+  const el = $("cases");
+  if (!FILTERED.length){
+    el.innerHTML = `<div class="empty"><b>No cases match.</b>
+      Widen the period or clear the outcome filter. Ten of thirteen cases sit outside the
+      <em>Policy changed</em> category, so filtering on it alone leaves very little.</div>`;
+    return;
+  }
+  const sorted = FILTERED.slice().sort((a,b) => mpi(b) - mpi(a));
+  el.innerHTML = sorted.map(c => {
+    const s = mpi(c), t = tier(s);
+    return `<button class="case" data-id="${c.id}" style="border-left-color:${SRS_COLOR[c.srs]}">
+      <div class="case-t">${c.title}</div>
+      <div class="case-m">
+        <span>${c.year} &middot; ${c.state}</span>
+        <span class="chip" style="background:${t.css};color:${t.fg}">${s.toFixed(0)} &middot; ${t.n}</span>
+      </div>
+    </button>`;
+  }).join("");
+  el.querySelectorAll(".case").forEach(b =>
+    b.addEventListener("click", () => {
+      const c = CASES.find(z => z.id === b.dataset.id);
+      if (VIEW === "map" && map) map.flyTo([c.lat, c.lng], 6, {duration:1.1});
+      openDossier(c);
+    }));
+}
+function renderStats(){
+  const n = FILTERED.length;
+  $("s-n").textContent = n;
+  $("scope").textContent = n + (n === 1 ? " CASE" : " CASES");
+  if (!n){ $("s-con").textContent = "\u2014"; $("s-med").textContent = "\u2014"; $("s-srs").textContent = "\u2014"; return; }
+  const won = FILTERED.filter(c => c.outcome === "Policy changed").length;
+  $("s-con").textContent = Math.round(won / n * 100) + "%";
+  const ds = FILTERED.map(c => c.days).sort((a,b) => a - b);
+  const mid = Math.floor(ds.length / 2);
+  $("s-med").textContent = ds.length % 2 ? ds[mid] : Math.round((ds[mid-1] + ds[mid]) / 2);
+  $("s-srs").textContent = (FILTERED.reduce((a,c) => a + c.srs, 0) / n).toFixed(1);
+}
+function pearson(a,b){
+  const n = a.length;
+  if (n < 3) return null;
+  const ma = a.reduce((x,y)=>x+y,0)/n, mb = b.reduce((x,y)=>x+y,0)/n;
+  let num=0, da=0, db=0;
+  for (let i=0;i<n;i++){ num += (a[i]-ma)*(b[i]-mb); da += (a[i]-ma)**2; db += (b[i]-mb)**2; }
+  if (!da || !db) return null;
+  return num / Math.sqrt(da*db);
+}
+function renderCorr(){
+  const el = $("corr"), n = FILTERED.length;
+  const P = FILTERED.map(mpi);
+  const R = FILTERED.map(c => c.srs);
+  const D = FILTERED.map(c => c.days);
+  const WIN = FILTERED.map(c => c.outcome === "Policy changed" ? 1 : 0);
+  const ANY = FILTERED.map(c => (c.outcome === "Policy changed" || c.outcome === "Partial concession") ? 1 : 0);
 
-            const listItem = document.createElement('div');
-            listItem.className = 'protest-list-item';
-            listItem.onclick = () => {
-                map.flyTo([item.lat, item.lng], 7, { duration: 1.5 });
-                openDossier(item);
-            };
+  const pairs = [
+    ["Pressure \u2192 full concession", pearson(P,WIN)],
+    ["Pressure \u2192 any concession",  pearson(P,ANY)],
+    ["Pressure \u2192 repression",      pearson(P,R)],
+    ["Duration \u2192 any concession",  pearson(D,ANY)]
+  ];
+  const col = r => r === null ? "#5d6c7e" : (Math.abs(r) < .3 ? "#7f8fa3" : (r > 0 ? "#6fc9b0" : "#e0242e"));
+  el.innerHTML = `<h5>Correlations, n = ${n}</h5>` +
+    pairs.map(([k,r]) => `<div class="cr"><span>${k}</span><b style="color:${col(r)}">${r===null?"\u2014":(r>=0?"+":"")+r.toFixed(2)}</b></div>`).join("") +
+    `<small>Pearson r, recomputed live against your weights. At this n these are descriptive only.
+     Note that pressure tracks repression more tightly than it tracks winning.</small>`;
+}
+function renderLegend(){
+  $("legend").innerHTML =
+    `<span style="color:var(--holo);letter-spacing:.14em">RESPONSE</span>` +
+    SRS_COLOR.map((c,i) => `<span><i style="background:${c}"></i>${i}</span>`).join("");
+}
 
-            listItem.innerHTML = `
-                <div class="item-name">${item.title}</div>
-                <div class="item-sub">
-                    <span>${item.location} (${item.year})</span>
-                    <span class="class-badge ${indexData.cssClass}">${indexData.score}</span>
-                </div>
-            `;
-            listContainer.appendChild(listItem);
-        });
+/* ===================== VIEWS ===================== */
+const VIEW_META = {
+  map:  ["Star map","GEOGRAPHIC DISTRIBUTION \u00b7 SIZE = PRESSURE \u00b7 COLOUR = RESPONSE"],
+  grid: ["Pressure grid","PRESSURE \u00d7 RESPONSE \u00b7 RING = OUTCOME \u00b7 SIZE = PARTICIPATION"],
+  time: ["Trajectories","DURATION ON A COMMON TIME AXIS \u00b7 END CAP = OUTCOME"],
+  book: ["Codebook","VARIABLES, WEIGHTS, CODING RULES, KNOWN LIMITS"]
+};
+function setView(v){
+  VIEW = v;
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === v)));
+  document.querySelectorAll(".view").forEach(el => el.classList.remove("on"));
+  $("v-" + v).classList.add("on");
+  $("view-title").firstChild.textContent = VIEW_META[v][0] + " ";
+  $("view-sub").textContent = VIEW_META[v][1];
+  if (v === "map" && map) setTimeout(() => map.invalidateSize(), 60);
+  renderView();
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => setView(t.dataset.view)));
 
-        // 3. Update Intelligence Metrics
-        const total = data.length;
-        document.getElementById('intel-count').innerText = total;
-        document.getElementById('intel-concession').innerText = total > 0 ? Math.round((policyConcessions / total) * 100) + "%" : "0%";
-        document.getElementById('intel-median').innerText = total > 0 ? Math.round(totalDuration / total) + " DAYS" : "0 DAYS";
-    }
+function renderView(){
+  if (VIEW === "map") drawMap();
+  else if (VIEW === "grid") drawGrid();
+  else if (VIEW === "time") drawTime();
+}
+function renderAll(){ renderStats(); renderCorr(); renderCases(); renderView(); }
+addEventListener("resize", () => { if (VIEW === "grid") drawGrid(); if (VIEW === "time") drawTime(); });
 
-    // ==========================================
-    // FILTER ENGINE
-    // ==========================================
-    function applyFilters() {
-        const yearVal = document.getElementById('filter-year').value;
-        const issueVal = document.getElementById('filter-issue').value;
-        const scaleVal = document.getElementById('filter-scale').value;
+/* ===================== DOSSIER ===================== */
+function openDossier(c){
+  const s = mpi(c), t = tier(s), n = components(c);
+  lastFocus = document.activeElement;
 
-        currentFilteredData = rawProtestData.filter(item => {
-            const matchYear = yearVal === "ALL" || item.year.includes(yearVal);
-            const matchIssue = issueVal === "ALL" || item.issue === issueVal;
-            const matchScale = scaleVal === "ALL" || item.scale === scaleVal;
-            return matchYear && matchIssue && matchScale;
-        });
+  $("d-strip").innerHTML =
+    `<span class="d-tag" style="background:${t.css};color:${t.fg}">CLASS ${t.n} \u2014 ${t.label.toUpperCase()}</span>
+     <span class="d-tag" style="background:${SRS_COLOR[c.srs]};color:#000">RESPONSE TIER ${c.srs}</span>
+     <span class="d-tag" style="background:${OUT_COLOR[c.outcome]};color:${c.outcome==="No major change"?"#fff":"#000"}">${c.outcome.toUpperCase()}</span>
+     <span class="d-tag" style="background:#efe9d8;color:#000">CONFIDENCE: ${c.confidence.toUpperCase()}</span>`;
 
-        renderDataOnDashboard(currentFilteredData);
-    }
+  $("d-title").textContent = c.title;
+  $("d-alt").textContent = c.alt;
 
-    function filterYearNode(year, element) {
-        document.querySelectorAll('.timeline-node').forEach(n => n.classList.remove('active'));
-        element.classList.add('active');
-        document.getElementById('filter-year').value = year;
-        applyFilters();
-    }
+  $("d-score").innerHTML = [
+    ["Pressure index", s.toFixed(1)],
+    ["Duration", c.days + " d"],
+    ["Reach", c.states_affected + " states"],
+    ["Participation", "Band " + c.participation_band],
+    ["Organisation", c.organisation + "/3"],
+    ["Disruption", c.disruption + "/3"]
+  ].map(([k,v]) => `<div class="sb"><b>${k}</b><i>${v}</i></div>`).join("");
 
-    // ==========================================
-    // PULP FICTION DOSSIER MODAL LOGIC
-    // ==========================================
-    function openDossier(item) {
-        const indexData = calculateConflictIndex(item);
-        
-        document.getElementById('d-title').innerText = item.title;
-        document.getElementById('d-class-badge').innerText = `${indexData.classification} (SCORE: ${indexData.score})`;
-        document.getElementById('d-class-badge').className = `dossier-badge ${indexData.cssClass}`;
-        
-        document.getElementById('d-location').innerText = item.location;
-        document.getElementById('d-period').innerText = item.year + ` (~${item.duration || 10} Days)`;
-        document.getElementById('d-issue').innerText = item.issue;
-        document.getElementById('d-scale').innerText = item.scale;
-        document.getElementById('d-actors').innerText = item.actors;
-        document.getElementById('d-response').innerText = item.response;
-        document.getElementById('d-outcome').innerText = item.outcome;
-        document.getElementById('d-score').innerText = indexData.score + " / 100";
-        
-        document.getElementById('d-brief').innerHTML = `
-            <p><strong>TAGLINE:</strong> <em>"${item.tagline}"</em></p>
-            <p>${item.brief}</p>
-        `;
+  const fmt = d => new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  $("d-grid").innerHTML = [
+    ["Location", c.place],
+    ["Jurisdiction", c.state],
+    ["Period", fmt(c.start) + " \u2013 " + fmt(c.end)],
+    ["Issue domain", c.issue],
+    ["Geographic scale", c.scale],
+    ["Primary actors", c.actors],
+    ["State response", c.response],
+    ["Concession venue", c.venue]
+  ].map(([k,v]) => `<div class="d-f"><strong>${k}</strong><span>${v}</span></div>`).join("");
 
-        document.getElementById('dossier-modal').style.display = 'flex';
-    }
+  $("d-brief").innerHTML = `<h4>Mission brief</h4>` + c.brief.map(p => `<p>${p}</p>`).join("");
+  $("d-note").innerHTML = c.note ? `<div class="note"><b>Coding note</b>${c.note}</div>` : "";
+  $("d-srcs").innerHTML = `<b>Sources</b>` +
+    c.srcs.map(([l,u]) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${l}</a>`).join("");
 
-    function closeDossier() {
-        document.getElementById('dossier-modal').style.display = 'none';
-    }
+  $("overlay").classList.add("on");
+  $("d-close").focus();
+  location.hash = c.id;
+}
+function closeDossier(){
+  $("overlay").classList.remove("on");
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+$("d-close").addEventListener("click", closeDossier);
+$("overlay").addEventListener("click", e => { if (e.target === $("overlay")) closeDossier(); });
+addEventListener("keydown", e => { if (e.key === "Escape" && $("overlay").classList.contains("on")) closeDossier(); });
+
+/* ===================== CSV EXPORT ===================== */
+$("btn-csv").addEventListener("click", () => {
+  const cols = ["id","title","alt","start","end","days","state","place","lat","lng","issue","scale",
+                "states_affected","participation_band","organisation","disruption","srs","outcome",
+                "venue","confidence"];
+  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+  const rows = [cols.concat(["pressure_index","class"]).join(",")].concat(
+    FILTERED.map(c => cols.map(k => esc(c[k])).concat([mpi(c).toFixed(2), tier(mpi(c)).n]).join(","))
+  );
+  const blob = new Blob([rows.join("\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "protest-galaxy-" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+
+/* ===================== CODEBOOK ===================== */
+$("book").innerHTML = `
+<h2>What this is</h2>
+<p>A coded comparison of thirteen high-salience Indian protest movements between November 2020 and August 2026.
+Each case is scored on a constructed intensity index, an ordinal measure of how the state responded, and a
+categorical outcome. Every score below is a coding decision, not an observation.</p>
+
+<h2>Read this before you cite anything</h2>
+<p><b style="color:var(--pulp)">The sample is purposive.</b> Cases were selected because they were nationally
+visible. ACLED recorded roughly 20,600 demonstrations in India in 2025 alone. The concession rate shown in the
+intelligence panel describes these thirteen cases and generalises to nothing.</p>
+<p><b style="color:var(--pulp)">Selection runs on the dependent variable.</b> Movements become nationally visible
+partly <em>because</em> the state responded to them. Conditioning on visibility inflates any apparent relationship
+between protest and policy change. Correcting this needs a sampling frame built from a source that logs unsuccessful
+protests too. ACLED and the Global Protest Tracker are the obvious candidates.</p>
+<p><b style="color:var(--pulp)">Participation figures are contested by design.</b> Organiser counts and police
+counts routinely differ by an order of magnitude in India. Point estimates are therefore refused. Participation
+enters as an ordered band and nothing finer.</p>
+
+<h2>Mobilisation pressure index</h2>
+<p>Five components, each rescaled to 0&ndash;1, combined using the weights in the left panel and expressed out of 100.
+The weights are a choice. Change them and watch the ranking change, which is the honest way to present an index like this.</p>
+<table>
+<tr><th>Component</th><th>Transform</th><th>Rationale</th></tr>
+<tr><td>Duration</td><td><code>log10(days+1) / log10(500)</code>, capped</td><td>The hundredth day of an encampment adds far less pressure than the tenth. Logging prevents one long protest from dominating the scale.</td></tr>
+<tr><td>Geographic reach</td><td><code>states / 15</code>, capped</td><td>Fifteen states is treated as national saturation. Beyond it, additional states add little.</td></tr>
+<tr><td>Participation band</td><td><code>(band-1) / 4</code></td><td>Band 1 under 1,000; 2 is 1k&ndash;10k; 3 is 10k&ndash;100k; 4 is 100k&ndash;1M; 5 above 1M.</td></tr>
+<tr><td>Organisational density</td><td><code>score / 3</code></td><td>0 spontaneous; 1 single local body; 2 formal union or association; 3 federated coalition across organisations.</td></tr>
+<tr><td>Disruption imposed</td><td><code>score / 3</code></td><td>0 symbolic assembly; 1 local obstruction; 2 encampment or sectoral strike; 3 national supply or service interruption.</td></tr>
+</table>
+<p>Class thresholds are conventional cutpoints, not natural breaks: I below 25, II from 25, III from 45, IV from 70.</p>
+
+<h2>What is deliberately excluded from the index</h2>
+<p>Outcome is not an input. The original version of this dashboard fed policy outcome into its intensity score,
+which makes the question <em>do intense protests win concessions?</em> answer itself. Intensity, response and
+outcome are kept in three separate columns so a relationship between them can be looked for rather than assumed.</p>
+
+<h2>State response severity</h2>
+<p>An ordinal code, not a computed value. Each case takes the highest tier it reached at any point.</p>
+<table>
+<tr><th>Tier</th><th>Definition</th></tr>
+<tr><td>0</td><td>No coercive response. Talks, silence, or receipt of a memorandum.</td></tr>
+<tr><td>1</td><td>Administrative restriction. Permission refused, prohibitory orders, route denial.</td></tr>
+<tr><td>2</td><td>Non-lethal force. Water cannon, tear gas, lathi charge, barricading, internet suspension.</td></tr>
+<tr><td>3</td><td>Mass detention or punitive legal action. Large-scale arrests, FIRs, preventive detention of leaders.</td></tr>
+<tr><td>4</td><td>Lethal force. Protester deaths arising from state coercive action.</td></tr>
+</table>
+
+<h2>Concession venue</h2>
+<p>Which institution actually moved. This is the field that turns a protest log into a veto-player analysis.
+A demand satisfiable by executive notification is cheap. A demand requiring statute is expensive. A demand
+requiring a court to reverse itself is close to unwinnable through mobilisation, whatever the crowd size.</p>
+<table>
+<tr><th>Venue</th><th>Cases</th></tr>
+<tr><td>Executive</td><td>Transporters' strike, Agnipath, Noida wages</td></tr>
+<tr><td>Legislature</td><td>2020&ndash;21 farmers' protest</td></tr>
+<tr><td>Judiciary</td><td>Wrestlers, RG Kar, West Bengal teachers</td></tr>
+<tr><td>None</td><td>Both Ladakh cases, 2024&ndash;25 farmers, Uttar Pradesh 2025, CJP, Meghalaya</td></tr>
+</table>
+
+<h2>Known weaknesses</h2>
+<p>Thirteen cases will not support inference. Treat the pressure grid as a way of framing hypotheses, not testing them.</p>
+<p>Duration endpoints for continuing movements are arbitrary and are set to the last confirmed major action.
+Ongoing cases are therefore understated.</p>
+<p>Every case is coded by one coder. There is no second pass and no inter-coder reliability statistic.
+Any published version needs both.</p>
+<p>Records from 2026 rest on recent reporting and carry medium or low confidence. The CJP entry in particular
+depends on accounts the Delhi Police dispute.</p>
+`;
+
+/* ===================== BOOT ===================== */
+function boot(){
+  $("poster").style.display = "none";
+  initMap();
+  renderLegend();
+  applyFilters();
+  setView("map");
+  const h = location.hash.slice(1);
+  if (h){ const c = CASES.find(z => z.id === h); if (c) openDossier(c); }
+}
+$("enter-btn").addEventListener("click", boot);
+addEventListener("keydown", e => {
+  if (e.key === "Enter" && $("poster").style.display !== "none") boot();
+});
 </script>
 </body>
 </html>
